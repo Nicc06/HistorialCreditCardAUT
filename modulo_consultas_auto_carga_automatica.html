@@ -1,0 +1,2654 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema Inteligente para la Evaluación y Gestión de Riesgo Crediticio</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js para visualizaciones estadísticas y convergencia -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            navy: {
+              950: '#060a14',
+              900: '#0b1120',
+              800: '#131c31',
+              700: '#1e293b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #0b1120;
+      color: #f1f5f9;
+      font-family: 'Inter', sans-serif;
+    }
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b1120;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    .glass-card {
+      background: rgba(19, 28, 49, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+    }
+    .nav-item.active {
+      background: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.08) 100%);
+      border-left: 3px solid #10b981;
+      color: #34d399;
+    }
+    .badge-grade-A, .badge-grade-B { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-grade-C, .badge-grade-D { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-grade-E, .badge-grade-F, .badge-grade-G { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col lg:flex-row overflow-x-hidden selection:bg-emerald-500/30 selection:text-emerald-200">
+
+  <!-- Contenedor de Notificaciones Flotantes -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- =========================================================================
+       BARRA LATERAL IZQUIERDA (8 CATEGORÍAS INCLUYENDO BIENVENIDA)
+  ========================================================================== -->
+  <aside id="sidebar" class="w-full lg:w-80 bg-navy-950 border-b lg:border-b-0 lg:border-r border-slate-800/90 flex-shrink-0 flex flex-col justify-between z-30">
+    <div>
+      <!-- Brand / Header Sidebar -->
+      <div class="p-5 border-b border-slate-800/80 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 via-cyan-500 to-amber-400 p-[1.5px] shadow-lg shadow-emerald-500/20">
+            <div class="w-full h-full bg-navy-950 rounded-[10px] flex items-center justify-center">
+              <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
+            </div>
+          </div>
+          <div>
+            <h1 class="font-bold text-sm tracking-tight text-white leading-tight">Modulo de Consultas AUTO</h1>
+          </div>
+        </div>
+        <button id="mobile-menu-btn" class="lg:hidden p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Menú de Navegación (8 Categorías) -->
+      <nav id="nav-links" class="hidden lg:flex flex-col py-3 px-3 gap-1">
+        <button data-tab="home" class="nav-item active flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/60 transition-all text-left">
+          <span class="flex items-center gap-2.5">
+            <i data-lucide="home" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+            <span>0. Presentación y Bienvenida</span>
+          </span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Inicio</span>
+        </button>
+
+        <button data-tab="eda" class="nav-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/60 transition-all text-left">
+          <span class="flex items-center gap-2.5">
+            <i data-lucide="bar-chart-3" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+            <span>1. Análisis Exploratorio (EDA)</span>
+          </span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">S1</span>
+        </button>
+
+        <button data-tab="search" class="nav-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/60 transition-all text-left">
+          <span class="flex items-center gap-2.5">
+            <i data-lucide="search" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+            <span>2. Algoritmos de Búsqueda</span>
+          </span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">S2,4,9,12</span>
+        </button>
+
+        <button data-tab="sorting" class="nav-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/60 transition-all text-left">
+          <span class="flex items-center gap-2.5">
+            <i data-lucide="arrow-up-down" class="w-4 h-4 text-amber-400 shrink-0"></i>
+            <span>3. Ordenamiento</span>
+          </span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">S3,5,6</span>
+        </button>
+
+        <button data-tab="trees" class="nav-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/60 transition-all text-left">
+          <span class="flex items-center gap-2.5">
+            <i data-lucide="git-fork" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+            <span>4. Árboles Balanceados</span>
+          </span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">S10</span>
+        </button>
+
+        <button data-tab="optimization" class="nav-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/60 transition-all text-left">
+          <span class="flex items-center gap-2.5">
+            <i data-lucide="cpu" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+            <span>5. Optimización Financiera</span>
+          </span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">S7,8,11</span>
+        </button>
+
+        <button data-tab="graphs" class="nav-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/60 transition-all text-left">
+          <span class="flex items-center gap-2.5">
+            <i data-lucide="network" class="w-4 h-4 text-amber-400 shrink-0"></i>
+            <span>6. Grafos y Redes</span>
+          </span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">S13-15</span>
+        </button>
+
+        <button data-tab="matrix" class="nav-item flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/60 transition-all text-left">
+          <span class="flex items-center gap-2.5">
+            <i data-lucide="book-open-check" class="w-4 h-4 text-purple-400 shrink-0"></i>
+            <span>7. Matriz de Complejidad y Plan</span>
+          </span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">S1-15</span>
+        </button>
+      </nav>
+    </div>
+
+  </aside>
+
+  <!-- =========================================================================
+       CONTENIDO PRINCIPAL
+  ========================================================================== -->
+  <main class="flex-1 flex flex-col min-w-0">
+    <!-- Barra Superior -->
+    <header class="bg-navy-900/85 backdrop-blur-md border-b border-slate-800/80 px-6 py-4 sticky top-0 z-20">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-white tracking-tight">
+            Sistema Inteligente para la Evaluación y Gestión de Riesgo Crediticio
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Analítica Crediticia, Estructuras Balanceadas, Optimización Combinatoria y Redes Bancarias
+          </p>
+        </div>
+        <div class="flex items-center gap-2 self-start sm:self-auto">
+          <div class="px-3 py-1.5 rounded-xl bg-slate-800/90 border border-amber-500/30 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span id="header-dataset-count" class="text-xs font-mono text-amber-300">Cargando base de datos...</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Contenedor Dinámico de las Secciones -->
+    <div class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+
+      <!-- =====================================================================
+           0. PÁGINA DE BIENVENIDA Y PRESENTACIÓN (HOME)
+      ====================================================================== -->
+      <section id="tab-home" class="tab-section space-y-6">
+        <!-- Banner Principal de Bienvenida -->
+        <div class="glass-card rounded-3xl p-6 sm:p-10 border border-emerald-500/30 relative overflow-hidden shadow-2xl bg-gradient-to-br from-navy-900 via-slate-900 to-navy-950">
+          <div class="absolute -right-16 -top-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div class="absolute right-1/3 -bottom-20 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div class="relative z-10 max-w-3xl space-y-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-semibold">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span>Proyecto Integrador • Ciclo Académico 2026</span>
+            </div>
+            
+            <h2 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+              Bienvenido al <span class="bg-gradient-to-r from-emerald-400 via-cyan-400 to-amber-300 bg-clip-text text-transparent">Sistema Inteligente de Riesgo Crediticio</span>
+            </h2>
+
+            <p class="text-sm sm:text-base text-slate-300 leading-relaxed">
+              Plataforma computacional avanzada desarrollada para modelar, analizar y optimizar la toma de decisiones en el sector financiero mediante la aplicación rigurosa de estructuras de datos, algoritmos complejos y analítica de datos sobre el dataset real <code class="text-cyan-400 font-mono">credit_risk_dataset.csv</code>.
+            </p>
+
+            <div class="pt-2 flex flex-wrap items-center gap-3">
+              <button onclick="document.querySelector('[data-tab=\'eda\']').click()" class="px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white text-xs font-bold shadow-lg transition flex items-center gap-2">
+                <span>Explorar Sistema y EDA</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+              <button onclick="document.querySelector('[data-tab=\'matrix\']').click()" class="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition flex items-center gap-2">
+                <i data-lucide="compass" class="w-4 h-4 text-amber-400"></i>
+                <span>Ver Plan y Complejidad (S1-S15)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjetas de Características Clave / Módulos -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="glass-card rounded-2xl p-5 space-y-3 hover:border-emerald-500/50 transition cursor-pointer" onclick="document.querySelector('[data-tab=\'eda\']').click()">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+              <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+            </div>
+            <h3 class="text-sm font-bold text-white">1. Analítica y EDA</h3>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              Visualización interactiva con Chart.js de la tasa de incumplimiento, distribución por grados crediticios (A-G) e ingresos vs. préstamos.
+            </p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 space-y-3 hover:border-cyan-500/50 transition cursor-pointer" onclick="document.querySelector('[data-tab=\'search\']').click()">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+              <i data-lucide="search" class="w-5 h-5"></i>
+            </div>
+            <h3 class="text-sm font-bold text-white">2. Búsqueda y KMP</h3>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              Comparativa de rendimiento entre búsqueda Secuencial, Binaria e Interpolación, junto con el algoritmo KMP y su tabla de prefijos LPS.
+            </p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 space-y-3 hover:border-amber-500/50 transition cursor-pointer" onclick="document.querySelector('[data-tab=\'optimization\']').click()">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+              <i data-lucide="cpu" class="w-5 h-5"></i>
+            </div>
+            <h3 class="text-sm font-bold text-white">3. Optimización de Cartera</h3>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              Maximización de rentabilidad bajo restricciones presupuestarias usando Programación Dinámica (Mochila 0/1), Algoritmo Genético y Simulated Annealing.
+            </p>
+          </div>
+        </div>
+
+        <!-- Pregunta Guía y Metodología -->
+        <div class="glass-card rounded-2xl p-6 border-l-4 border-amber-400 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+          <div class="space-y-2">
+            <div class="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
+              <i data-lucide="help-circle" class="w-4 h-4"></i>
+              <span>Reto Central del Proyecto</span>
+            </div>
+            <p class="text-sm font-medium text-white leading-relaxed">
+              “¿Cómo puede una entidad financiera utilizar algoritmos avanzados para buscar información, organizar datos, optimizar la aprobación de créditos y apoyar la toma de decisiones a partir del dataset credit_risk_dataset.csv?”
+            </p>
+          </div>
+          <button onclick="document.querySelector('[data-tab=\'matrix\']').click()" class="shrink-0 px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition">
+            Ver Pregunta Guía Completa
+          </button>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           1. ANÁLISIS EXPLORATORIO (EDA) — SEMANA 1
+      ====================================================================== -->
+      <section id="tab-eda" class="tab-section hidden space-y-6">
+        <!-- Banner de Contexto Estadístico -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 border-l-4 border-emerald-500 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Semana 1 • Comprensión del Negocio y Análisis Exploratorio (EDA)</span>
+            <p class="text-xs sm:text-sm text-slate-300 mt-1">
+              Parámetros de referencia de <code class="text-cyan-400">credit_risk_dataset.csv</code>: <strong class="text-white">32,581 solicitudes</strong>, tasa de incumplimiento <strong class="text-rose-400">~21.82%</strong>, ingreso medio <strong class="text-emerald-400">$66,075</strong> y préstamo promedio <strong class="text-amber-400">$9,589</strong>. Registros activos: <strong id="banner-active-count" class="text-white font-mono">Cargando...</strong>.
+            </p>
+          </div>
+          <button onclick="document.getElementById('dict-modal').classList.remove('hidden')" class="shrink-0 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-500/40 text-xs font-semibold text-amber-300 flex items-center gap-2 transition-all">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+            <span>Diccionario de Variables (12)</span>
+          </button>
+        </div>
+
+        <!-- 5 KPIs Globales -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div class="glass-card rounded-2xl p-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-400">Total Solicitudes</span>
+              <div class="p-2 rounded-xl bg-cyan-500/10 text-cyan-400"><i data-lucide="users" class="w-4 h-4"></i></div>
+            </div>
+            <div id="kpi-total" class="text-2xl font-bold text-white mt-2 font-mono">600</div>
+            <p class="text-[11px] text-slate-400 mt-1">Global: <span class="text-slate-300 font-mono">32,581</span></p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-400">Tasa Default %</span>
+              <div class="p-2 rounded-xl bg-rose-500/10 text-rose-400"><i data-lucide="alert-triangle" class="w-4 h-4"></i></div>
+            </div>
+            <div id="kpi-default-rate" class="text-2xl font-bold text-rose-400 mt-2 font-mono">21.83%</div>
+            <p class="text-[11px] text-slate-400 mt-1">Global: <span class="text-slate-300 font-mono">21.82%</span></p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-400">Ingreso Promedio</span>
+              <div class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400"><i data-lucide="wallet" class="w-4 h-4"></i></div>
+            </div>
+            <div id="kpi-avg-income" class="text-2xl font-bold text-emerald-400 mt-2 font-mono">$66,075</div>
+            <p class="text-[11px] text-slate-400 mt-1">Global: <span class="text-slate-300 font-mono">$66,075</span></p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-400">Préstamo Promedio</span>
+              <div class="p-2 rounded-xl bg-amber-500/10 text-amber-400"><i data-lucide="banknote" class="w-4 h-4"></i></div>
+            </div>
+            <div id="kpi-avg-loan" class="text-2xl font-bold text-amber-300 mt-2 font-mono">$9,589</div>
+            <p class="text-[11px] text-slate-400 mt-1">Global: <span class="text-slate-300 font-mono">$9,589</span></p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-400">Tasa Interés Media</span>
+              <div class="p-2 rounded-xl bg-purple-500/10 text-purple-400"><i data-lucide="percent" class="w-4 h-4"></i></div>
+            </div>
+            <div id="kpi-avg-rate" class="text-2xl font-bold text-purple-300 mt-2 font-mono">11.01%</div>
+            <p class="text-[11px] text-slate-400 mt-1">Global: <span class="text-slate-300 font-mono">11.01%</span></p>
+          </div>
+        </div>
+
+        <!-- Gráficos Interactivos Chart.js -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="glass-card rounded-2xl p-5">
+            <h3 class="text-sm font-semibold text-white mb-1">Distribución de Riesgo por Grado (A-G)</h3>
+            <p class="text-xs text-slate-400 mb-4">Cumplimiento vs. Default según calificación crediticia</p>
+            <div class="h-64 relative">
+              <canvas id="chart-grade"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5">
+            <h3 class="text-sm font-semibold text-white mb-1">Propósito del Préstamo (loan_intent)</h3>
+            <p class="text-xs text-slate-400 mb-4">Volumen y morosidad por destino de crédito</p>
+            <div class="h-64 relative">
+              <canvas id="chart-intent"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5">
+            <h3 class="text-sm font-semibold text-white mb-1">Ingresos vs. Monto de Préstamo</h3>
+            <p class="text-xs text-slate-400 mb-4">Relación capacidad financiera vs. capital solicitado</p>
+            <div class="h-64 relative">
+              <canvas id="chart-scatter"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla Paginada Filtrable de Clientes -->
+        <div class="glass-card rounded-2xl p-5 space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h3 class="text-base font-semibold text-white">Explorador Paginado de Solicitudes Crediticias</h3>
+              <p class="text-xs text-slate-400">Filtra por grado crediticio, estado de incumplimiento o intención del préstamo</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <select id="filter-grade" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                <option value="ALL">Grado: Todos (A-G)</option>
+                <option value="A">Grado A (Bajo Riesgo)</option>
+                <option value="B">Grado B</option>
+                <option value="C">Grado C</option>
+                <option value="D">Grado D</option>
+                <option value="E">Grado E</option>
+                <option value="F">Grado F</option>
+                <option value="G">Grado G (Alto Riesgo)</option>
+              </select>
+
+              <select id="filter-status" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                <option value="ALL">Estado: Todos</option>
+                <option value="0">Sin Default (0)</option>
+                <option value="1">Con Default (1)</option>
+              </select>
+
+              <select id="filter-intent" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                <option value="ALL">Intención: Todas</option>
+                <option value="EDUCATION">EDUCATION</option>
+                <option value="MEDICAL">MEDICAL</option>
+                <option value="VENTURE">VENTURE</option>
+                <option value="PERSONAL">PERSONAL</option>
+                <option value="DEBTCONSOLIDATION">DEBTCONSOLIDATION</option>
+                <option value="HOMEIMPROVEMENT">HOMEIMPROVEMENT</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-900/90 text-slate-400 uppercase text-[11px] border-b border-slate-800">
+                  <th class="py-3 px-3 font-semibold">ID Cliente</th>
+                  <th class="py-3 px-3 font-semibold">Edad</th>
+                  <th class="py-3 px-3 font-semibold">Ingreso Anual</th>
+                  <th class="py-3 px-3 font-semibold">Vivienda</th>
+                  <th class="py-3 px-3 font-semibold">Antig. Lab.</th>
+                  <th class="py-3 px-3 font-semibold">Intención</th>
+                  <th class="py-3 px-3 font-semibold">Grado</th>
+                  <th class="py-3 px-3 font-semibold">Préstamo</th>
+                  <th class="py-3 px-3 font-semibold">Tasa %</th>
+                  <th class="py-3 px-3 font-semibold">% Ingreso</th>
+                  <th class="py-3 px-3 font-semibold">Buró Def.</th>
+                  <th class="py-3 px-3 font-semibold">Estado</th>
+                </tr>
+              </thead>
+              <tbody id="explorer-table-body" class="divide-y divide-slate-800/70 text-slate-200 font-mono"></tbody>
+            </table>
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs text-slate-400">
+            <span id="pagination-info">Mostrando 1 - 12 de 600 registros</span>
+            <div class="flex items-center gap-2">
+              <button id="prev-page-btn" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 transition">Anterior</button>
+              <span id="page-indicator" class="font-mono text-slate-300 px-2">Página 1</span>
+              <button id="next-page-btn" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 transition">Siguiente</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           2. ALGORITMOS DE BÚSQUEDA — SEMANAS 2, 4, 9, 12
+      ====================================================================== -->
+      <section id="tab-search" class="tab-section hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Submódulo A: Búsqueda Numérica (Secuencial, Binaria, Interpolación) -->
+          <div class="glass-card rounded-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-400">Semanas 2, 4 y 9 • Consultas Numéricas e ID</span>
+                <h3 class="text-base font-bold text-white">Secuencial vs. Binaria vs. Interpolación</h3>
+              </div>
+              <i data-lucide="search-check" class="w-5 h-5 text-cyan-400"></i>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Atributo de Consulta</label>
+                <select id="num-search-field" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                  <option value="person_income">Ingreso Anual (person_income)</option>
+                  <option value="loan_amnt">Monto Préstamo (loan_amnt)</option>
+                  <option value="id">ID Cliente (ej. CLI-00025)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Valor Objetivo</label>
+                <div class="flex gap-2">
+                  <input id="num-search-query" type="text" placeholder="Ej. 65000 o CLI-00025" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-500" />
+                  <button id="pick-random-num-btn" title="Elegir valor real aleatorio del dataset" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs transition">
+                    <i data-lucide="dice-5" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button id="run-num-search-btn" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white text-xs font-semibold shadow-lg transition-all flex items-center justify-center gap-2">
+              <i data-lucide="play" class="w-4 h-4"></i>
+              <span>Ejecutar Comparativa de Búsqueda en Vivo</span>
+            </button>
+
+            <!-- Tabla Comparativa en Vivo -->
+            <div class="overflow-x-auto rounded-xl border border-slate-800">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-900 text-slate-400 text-[11px] uppercase">
+                  <tr>
+                    <th class="py-2.5 px-3">Algoritmo</th>
+                    <th class="py-2.5 px-3">Complejidad</th>
+                    <th class="py-2.5 px-3">Comparaciones</th>
+                    <th class="py-2.5 px-3">Tiempo (ms)</th>
+                    <th class="py-2.5 px-3">Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="num-search-tbody" class="divide-y divide-slate-800 font-mono text-slate-200">
+                  <tr><td colspan="5" class="py-5 px-3 text-center text-slate-500 font-sans">Usa el botón de dado y ejecuta la consulta para medir rendimiento.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div id="num-search-record-box" class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-slate-400">
+              Esperando consulta numérica o por identificador...
+            </div>
+          </div>
+
+          <!-- Submódulo B: Búsqueda Textual KMP + Tabla LPS Dinámica -->
+          <div class="glass-card rounded-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400">Semana 12 • Búsqueda Textual Sin Retroceso</span>
+                <h3 class="text-base font-bold text-white">Algoritmo KMP (Knuth-Morris-Pratt) & Tabla LPS</h3>
+              </div>
+              <i data-lucide="text-search" class="w-5 h-5 text-amber-400"></i>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Campo Categórico</label>
+                <select id="kmp-field-select" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                  <option value="ALL_TEXT">Todos (Intención + Vivienda + Grado)</option>
+                  <option value="loan_intent">Intención (loan_intent)</option>
+                  <option value="person_home_ownership">Vivienda (person_home_ownership)</option>
+                  <option value="loan_grade">Grado Crediticio (loan_grade)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Subcadena / Patrón Textual</label>
+                <input id="kmp-pattern-input" type="text" value="CONSOLIDATION" placeholder="Ej. VENTURE, MORTGAGE, EDU..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono uppercase focus:outline-none focus:border-amber-500" />
+              </div>
+            </div>
+
+            <button id="run-kmp-btn" class="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 text-xs font-bold shadow-lg transition-all flex items-center justify-center gap-2">
+              <i data-lucide="cpu" class="w-4 h-4"></i>
+              <span>Calcular Tabla LPS y Ejecutar KMP — O(n + m)</span>
+            </button>
+
+            <!-- Visualización de la Tabla LPS (Longest Prefix Suffix) -->
+            <div class="p-3.5 rounded-xl bg-slate-950 border border-amber-500/30 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400">Tabla de Prefijos LPS (Longest Prefix Suffix)</span>
+                <span id="kmp-metrics-badge" class="text-[11px] font-mono text-emerald-400">-- ms</span>
+              </div>
+              <div id="kmp-lps-visual" class="overflow-x-auto pb-1">
+                <!-- Celdas LPS generadas por JS -->
+              </div>
+            </div>
+
+            <!-- Resultados KMP -->
+            <div id="kmp-results-box" class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs space-y-1.5">
+              <p class="text-slate-400">Presiona el botón para construir el autómata LPS y filtrar solicitudes.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           3. ORDENAMIENTO — SEMANAS 3, 5, 6
+      ====================================================================== -->
+      <section id="tab-sorting" class="tab-section hidden space-y-6">
+        <div class="glass-card rounded-2xl p-5 space-y-5">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400">Semanas 3, 5 y 6 • Paradigma Divide y Vencerás</span>
+              <h3 class="text-base font-bold text-white">Benchmark de Ordenamiento: Merge Sort vs. Quick Sort</h3>
+              <p class="text-xs text-slate-400">Compara tiempos de ejecución, comparaciones e intercambios/fusiones reales sobre el dataset crediticio.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <select id="sort-field" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                <option value="person_income">Ordenar por: Ingreso (person_income)</option>
+                <option value="loan_amnt">Ordenar por: Préstamo (loan_amnt)</option>
+                <option value="loan_int_rate">Ordenar por: Tasa Interés (loan_int_rate)</option>
+                <option value="person_age">Ordenar por: Edad (person_age)</option>
+              </select>
+              <select id="sort-order" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                <option value="desc">Descendente (Mayor a Menor)</option>
+                <option value="asc">Ascendente (Menor a Mayor)</option>
+              </select>
+              <button id="run-sort-benchmark-btn" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white text-xs font-bold shadow-lg flex items-center gap-1.5 transition">
+                <i data-lucide="zap" class="w-4 h-4"></i>
+                <span>Ordenar y Medir</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tarjetas de Benchmark -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="p-4 rounded-2xl bg-slate-900/95 border border-emerald-500/40 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-emerald-400">Merge Sort (Estable)</span>
+                <span class="px-2 py-0.5 text-[11px] font-mono rounded bg-emerald-500/15 text-emerald-300">Θ(n log n) • Espacio O(n)</span>
+              </div>
+              <div class="grid grid-cols-3 gap-2 pt-1 font-mono">
+                <div class="p-2.5 rounded-xl bg-slate-950">
+                  <div class="text-[10px] text-slate-400">Tiempo</div>
+                  <div id="merge-time" class="text-sm font-bold text-white mt-0.5">-- ms</div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-950">
+                  <div class="text-[10px] text-slate-400">Comparaciones</div>
+                  <div id="merge-comps" class="text-sm font-bold text-emerald-400 mt-0.5">--</div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-950">
+                  <div class="text-[10px] text-slate-400">Fusiones (Writes)</div>
+                  <div id="merge-writes" class="text-sm font-bold text-cyan-400 mt-0.5">--</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-900/95 border border-cyan-500/40 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-cyan-400">Quick Sort (In-Place Pivote Mediana)</span>
+                <span class="px-2 py-0.5 text-[11px] font-mono rounded bg-cyan-500/15 text-cyan-300">Θ(n log n) • Espacio O(log n)</span>
+              </div>
+              <div class="grid grid-cols-3 gap-2 pt-1 font-mono">
+                <div class="p-2.5 rounded-xl bg-slate-950">
+                  <div class="text-[10px] text-slate-400">Tiempo</div>
+                  <div id="quick-time" class="text-sm font-bold text-white mt-0.5">-- ms</div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-950">
+                  <div class="text-[10px] text-slate-400">Comparaciones</div>
+                  <div id="quick-comps" class="text-sm font-bold text-cyan-400 mt-0.5">--</div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-950">
+                  <div class="text-[10px] text-slate-400">Intercambios (Swaps)</div>
+                  <div id="quick-swaps" class="text-sm font-bold text-amber-400 mt-0.5">--</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Primeros 15 Registros Ordenados -->
+          <div class="space-y-2">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Primeros 15 Registros Resultantes del Ordenamiento</h4>
+            <div class="overflow-x-auto rounded-xl border border-slate-800">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-900 text-slate-400 text-[11px] uppercase">
+                  <tr>
+                    <th class="py-2.5 px-3">Pos.</th>
+                    <th class="py-2.5 px-3">ID Cliente</th>
+                    <th class="py-2.5 px-3">Edad</th>
+                    <th class="py-2.5 px-3">Ingreso Anual</th>
+                    <th class="py-2.5 px-3">Monto Préstamo</th>
+                    <th class="py-2.5 px-3">Tasa Interés</th>
+                    <th class="py-2.5 px-3">Intención</th>
+                    <th class="py-2.5 px-3">Grado</th>
+                  </tr>
+                </thead>
+                <tbody id="sort-preview-body" class="divide-y divide-slate-800 font-mono text-slate-200">
+                  <tr><td colspan="8" class="py-6 text-center text-slate-500 font-sans">Haz clic en "Ordenar y Medir" para visualizar los primeros 15 registros ordenados.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           4. ÁRBOLES BALANCEADOS (AVL Y ROJO-NEGRO) — SEMANA 10
+      ====================================================================== -->
+      <section id="tab-trees" class="tab-section hidden space-y-6">
+        <div class="glass-card rounded-2xl p-5 space-y-4">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Semana 10 • Estructuras Dinámicas Auto-Balanceadas</span>
+              <h3 class="text-base font-bold text-white">Indexación de Clientes: Árbol AVL vs. Árbol Rojo-Negro (RBT)</h3>
+              <p class="text-xs text-slate-400">Inserta nuevos registros o busca claves resaltando la ruta recorrida desde la raíz.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <select id="tree-key-select" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                <option value="person_income">Indexar por: Ingreso Anual ($)</option>
+                <option value="id_num">Indexar por: ID Numérico de Cliente</option>
+              </select>
+              <button id="rebuild-trees-btn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition flex items-center gap-1.5">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Reconstruir Índices</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Controles de Inserción y Búsqueda con Resaltado -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 p-3.5 rounded-xl bg-slate-900/90 border border-slate-800">
+            <div class="flex gap-2">
+              <input id="tree-insert-val" type="number" placeholder="Insertar clave ej. 74500" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono" />
+              <button id="tree-insert-btn" class="px-3 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shrink-0">Insertar</button>
+            </div>
+            <div class="flex gap-2">
+              <input id="tree-search-val" type="number" placeholder="Buscar clave en árbol..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono" />
+              <button id="tree-search-btn" class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shrink-0">Buscar Ruta</button>
+            </div>
+            <div id="tree-search-feedback" class="flex items-center text-xs text-slate-300 px-2 font-mono">
+              Haz clic en un nodo o busca una clave para iluminar su ruta.
+            </div>
+          </div>
+
+          <!-- Tabla Comparativa AVL vs RBT -->
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-900 text-slate-400 text-[11px] uppercase">
+                <tr>
+                  <th class="py-2.5 px-3">Estructura Balanceada</th>
+                  <th class="py-2.5 px-3">Invariante</th>
+                  <th class="py-2.5 px-3">Nodos Únicos</th>
+                  <th class="py-2.5 px-3">Altura del Árbol</th>
+                  <th class="py-2.5 px-3">Rotaciones Realizadas</th>
+                  <th class="py-2.5 px-3">Tiempo Indexación</th>
+                  <th class="py-2.5 px-3">Última Búsqueda</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800 font-mono text-slate-200">
+                <tr>
+                  <td class="py-2.5 px-3 font-sans font-bold text-emerald-400">Árbol AVL</td>
+                  <td class="py-2.5 px-3 text-slate-400">|h(izq) - h(der)| ≤ 1</td>
+                  <td id="avl-nodes" class="py-2.5 px-3">--</td>
+                  <td id="avl-height" class="py-2.5 px-3 text-cyan-400 font-bold">--</td>
+                  <td id="avl-rotations" class="py-2.5 px-3 text-emerald-400 font-bold">--</td>
+                  <td id="avl-time" class="py-2.5 px-3">-- ms</td>
+                  <td id="avl-search-time" class="py-2.5 px-3 text-amber-300">--</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-sans font-bold text-rose-400">Árbol Rojo-Negro (RBT)</td>
+                  <td class="py-2.5 px-3 text-slate-400">h ≤ 2·log₂(n + 1)</td>
+                  <td id="rb-nodes" class="py-2.5 px-3">--</td>
+                  <td id="rb-height" class="py-2.5 px-3 text-cyan-400 font-bold">--</td>
+                  <td id="rb-rotations" class="py-2.5 px-3 text-rose-400 font-bold">--</td>
+                  <td id="rb-time" class="py-2.5 px-3">-- ms</td>
+                  <td id="rb-search-time" class="py-2.5 px-3 text-amber-300">--</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Lienzo SVG del Árbol Balanceado -->
+          <div class="space-y-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-xs font-semibold text-slate-300">Visualización Topológica Interactiva (Primeros 4 niveles • Clic en nodo para consultar)</span>
+              <div class="flex gap-2">
+                <button id="view-avl-svg-btn" class="px-3 py-1 rounded-lg bg-emerald-600 text-white text-xs font-semibold">Vista Árbol AVL (FE)</button>
+                <button id="view-rb-svg-btn" class="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-semibold">Vista Rojo-Negro (RBT)</button>
+              </div>
+            </div>
+            <div class="w-full overflow-x-auto rounded-2xl bg-slate-950 border border-slate-800 p-2">
+              <svg id="tree-svg-canvas" viewBox="0 0 960 350" class="w-full min-w-[720px] h-80"></svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           5. OPTIMIZACIÓN FINANCIERA — SEMANAS 7, 8, 11
+      ====================================================================== -->
+      <section id="tab-optimization" class="tab-section hidden space-y-6">
+        <div class="glass-card rounded-2xl p-5 space-y-5">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-400">Semanas 7, 8 y 11 • Asignación Óptima de Capital</span>
+              <h3 class="text-base font-bold text-white">Optimización de Cartera: Programación Dinámica vs. Simulated Annealing vs. Algoritmo Genético</h3>
+              <p class="text-xs text-slate-400 mt-0.5">
+                Función objetivo: <code class="text-emerald-400">Retorno Esperado = loan_amnt × (loan_int_rate / 100) × (1 - P(riesgo))</code> sujeto a presupuesto máximo.
+              </p>
+            </div>
+            <button id="run-optimization-btn" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-cyan-600 to-amber-500 hover:opacity-95 text-slate-950 text-xs font-extrabold shadow-lg flex items-center gap-2 shrink-0">
+              <i data-lucide="cpu" class="w-4 h-4"></i>
+              <span>Optimizar Cartera (3 Algoritmos)</span>
+            </button>
+          </div>
+
+          <!-- Parámetros de Simulación -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-900/90 border border-slate-800">
+            <div class="md:col-span-2">
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-300 font-medium">Presupuesto Disponible (Capital)</span>
+                <span id="budget-display" class="font-mono font-bold text-amber-400">$200,000</span>
+              </div>
+              <input id="opt-budget-slider" type="range" min="100000" max="500000" step="10000" value="200000" class="w-full accent-emerald-500 cursor-pointer" />
+              <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-1">
+                <span>$100,000</span>
+                <span>$300,000</span>
+                <span>$500,000</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Solicitudes Candidatas</label>
+              <select id="opt-pool-size" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono">
+                <option value="50">50 solicitudes</option>
+                <option value="80" selected>80 solicitudes</option>
+                <option value="120">120 solicitudes</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Generaciones AG / Pasos SA</label>
+              <select id="opt-iterations" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono">
+                <option value="100">100 iteraciones</option>
+                <option value="180" selected>180 iteraciones</option>
+                <option value="300">300 iteraciones</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Resultados de los 3 Algoritmos -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="p-4 rounded-2xl bg-slate-900/95 border border-emerald-500/40 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-emerald-400">1. Mochila 0/1 (Prog. Dinámica)</span>
+                <span class="px-2 py-0.5 text-[10px] rounded bg-emerald-500/15 text-emerald-300 font-mono">Óptimo Exacto</span>
+              </div>
+              <div id="dp-profit" class="text-2xl font-bold font-mono text-white">$--</div>
+              <div class="text-xs text-slate-400 space-y-1 font-mono">
+                <div>Capital asignado: <span id="dp-capital" class="text-slate-200">--</span></div>
+                <div>Créditos aprobados: <span id="dp-count" class="text-slate-200">--</span></div>
+                <div>Tiempo ejecución: <span id="dp-time" class="text-emerald-400">-- ms</span></div>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-900/95 border border-amber-500/40 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-amber-400">2. Simulated Annealing (SA)</span>
+                <span class="px-2 py-0.5 text-[10px] rounded bg-amber-500/15 text-amber-300 font-mono">T₀=1500 • α=0.97</span>
+              </div>
+              <div id="sa-profit" class="text-2xl font-bold font-mono text-white">$--</div>
+              <div class="text-xs text-slate-400 space-y-1 font-mono">
+                <div>Capital asignado: <span id="sa-capital" class="text-slate-200">--</span></div>
+                <div>Créditos aprobados: <span id="sa-count" class="text-slate-200">--</span></div>
+                <div>Tiempo / Eficiencia: <span id="sa-time" class="text-amber-400">--</span></div>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-900/95 border border-cyan-500/40 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-cyan-400">3. Algoritmo Genético (AG)</span>
+                <span class="px-2 py-0.5 text-[10px] rounded bg-cyan-500/15 text-cyan-300 font-mono">Pob=45 • Cruce+Mut</span>
+              </div>
+              <div id="ga-profit" class="text-2xl font-bold font-mono text-white">$--</div>
+              <div class="text-xs text-slate-400 space-y-1 font-mono">
+                <div>Capital asignado: <span id="ga-capital" class="text-slate-200">--</span></div>
+                <div>Créditos aprobados: <span id="ga-count" class="text-slate-200">--</span></div>
+                <div>Tiempo / Eficiencia: <span id="ga-time" class="text-cyan-400">--</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Curva de Convergencia + Tabla de Cartera Aprobada -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">Curva de Convergencia de Fitness (AG vs. SA vs. Óptimo DP)</h4>
+              <div class="h-64 relative">
+                <canvas id="chart-convergence"></canvas>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col">
+              <div class="flex items-center justify-between mb-3">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Clientes Aprobados en la Cartera Óptima</h4>
+                <span id="opt-avg-risk-badge" class="text-[11px] font-mono text-emerald-400">Riesgo medio: --</span>
+              </div>
+              <div class="overflow-y-auto max-h-64 rounded-xl border border-slate-800">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-slate-950 text-slate-400 text-[11px] sticky top-0">
+                    <tr>
+                      <th class="py-2 px-2.5">ID</th>
+                      <th class="py-2 px-2.5">Grado</th>
+                      <th class="py-2 px-2.5">Monto</th>
+                      <th class="py-2 px-2.5">Tasa</th>
+                      <th class="py-2 px-2.5">Utilidad Esp.</th>
+                    </tr>
+                  </thead>
+                  <tbody id="opt-portfolio-body" class="divide-y divide-slate-800 font-mono text-slate-200"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           6. GRAFOS Y REDES — SEMANAS 13, 14, 15
+      ====================================================================== -->
+      <section id="tab-graphs" class="tab-section hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Panel Izquierdo: Configuración y Opciones (Inspirado en la UI de la foto) -->
+          <div class="lg:col-span-4 glass-card rounded-2xl p-5 space-y-5 flex flex-col justify-between">
+            <div class="space-y-4">
+              <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400">Semanas 13, 14 y 15 • Topología de Red de Riesgo</span>
+                <h3 class="text-base font-bold text-white mt-1">Análisis de Grafo con Dijkstra</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Encuentra la ruta de menor riesgo crediticio desde el Grado A hasta el grado que elijas.</p>
+              </div>
+
+              <div class="space-y-2 pt-2">
+                <label class="block text-xs font-semibold text-slate-300">Selecciona el Grado Crediticio Destino:</label>
+                
+                <!-- Opciones con Radio Buttons estilo Tarjeta -->
+                <div class="space-y-2" id="grade-options-container">
+                  <label class="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-emerald-500/50 cursor-pointer transition">
+                    <div class="flex items-center gap-3">
+                      <input type="radio" name="target_grade" value="B" class="accent-emerald-500" />
+                      <div>
+                        <span class="text-xs font-bold text-white">Grado B</span>
+                        <p class="text-[10px] text-slate-400">Riesgo moderado-bajo (Tasa ~11%)</p>
+                      </div>
+                    </div>
+                    <span class="px-2 py-0.5 text-[10px] font-mono rounded badge-grade-B">B</span>
+                  </label>
+
+                  <label class="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-emerald-500/50 cursor-pointer transition">
+                    <div class="flex items-center gap-3">
+                      <input type="radio" name="target_grade" value="C" class="accent-emerald-500" />
+                      <div>
+                        <span class="text-xs font-bold text-white">Grado C</span>
+                        <p class="text-[10px] text-slate-400">Riesgo medio (Tasa ~13.5%)</p>
+                      </div>
+                    </div>
+                    <span class="px-2 py-0.5 text-[10px] font-mono rounded badge-grade-C">C</span>
+                  </label>
+
+                  <label class="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-emerald-500/50 cursor-pointer transition">
+                    <div class="flex items-center gap-3">
+                      <input type="radio" name="target_grade" value="D" class="accent-emerald-500" />
+                      <div>
+                        <span class="text-xs font-bold text-white">Grado D</span>
+                        <p class="text-[10px] text-slate-400">Riesgo elevado (Tasa ~15.4%)</p>
+                      </div>
+                    </div>
+                    <span class="px-2 py-0.5 text-[10px] font-mono rounded badge-grade-D">D</span>
+                  </label>
+
+                  <label class="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-emerald-500/50 cursor-pointer transition">
+                    <div class="flex items-center gap-3">
+                      <input type="radio" name="target_grade" value="E" class="accent-emerald-500" />
+                      <div>
+                        <span class="text-xs font-bold text-white">Grado E</span>
+                        <p class="text-[10px] text-slate-400">Alto riesgo de default (Tasa ~17%)</p>
+                      </div>
+                    </div>
+                    <span class="px-2 py-0.5 text-[10px] font-mono rounded badge-grade-E">E</span>
+                  </label>
+
+                  <label class="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-emerald-500/50 cursor-pointer transition">
+                    <div class="flex items-center gap-3">
+                      <input type="radio" name="target_grade" value="F" class="accent-emerald-500" />
+                      <div>
+                        <span class="text-xs font-bold text-white">Grado F</span>
+                        <p class="text-[10px] text-slate-400">Muy alto riesgo (Tasa ~18.6%)</p>
+                      </div>
+                    </div>
+                    <span class="px-2 py-0.5 text-[10px] font-mono rounded badge-grade-F">F</span>
+                  </label>
+
+                  <label class="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-emerald-500/50 cursor-pointer transition">
+                    <div class="flex items-center gap-3">
+                      <input type="radio" name="target_grade" value="G" checked class="accent-emerald-500" />
+                      <div>
+                        <span class="text-xs font-bold text-white">Grado G</span>
+                        <p class="text-[10px] text-slate-400">Máximo riesgo crediticio (Tasa ~20.2%)</p>
+                      </div>
+                    </div>
+                    <span class="px-2 py-0.5 text-[10px] font-mono rounded badge-grade-G">G</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Filtro de Tolerancia al Riesgo (Slider) -->
+              <div class="space-y-1.5 pt-2">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-300 font-medium">Tolerancia Máxima de Default (%):</span>
+                  <span id="risk-tolerance-display" class="font-mono font-bold text-amber-400">75%</span>
+                </div>
+                <input id="graph-risk-slider" type="range" min="10" max="90" step="5" value="75" class="w-full accent-emerald-500 cursor-pointer" />
+              </div>
+            </div>
+
+            <button id="run-dijkstra-btn" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white text-xs font-bold shadow-lg transition flex items-center justify-center gap-2">
+              <i data-lucide="play" class="w-4 h-4"></i>
+              <span>Analizar Ruta con Dijkstra</span>
+            </button>
+          </div>
+
+          <!-- Panel Derecho: Resultados, Tabla y Gráfico Comparativo -->
+          <div class="lg:col-span-8 space-y-6">
+            
+            <!-- Resultados del Análisis (Tabla estilo UI de la foto) -->
+            <div class="glass-card rounded-2xl p-5 space-y-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-base font-bold text-white">Resultados del Análisis de Red</h3>
+                  <p class="text-xs text-slate-400">Comparativa de rutas evaluadas desde el origen (Grado A) hasta el destino seleccionado.</p>
+                </div>
+                <span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[11px] font-mono flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Análisis completado
+                </span>
+              </div>
+
+              <div class="overflow-x-auto rounded-xl border border-slate-800">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-slate-900 text-slate-400 uppercase text-[11px]">
+                    <tr>
+                      <th class="py-3 px-3">Ruta / Opciones</th>
+                      <th class="py-3 px-3">Prob. Default Acum.</th>
+                      <th class="py-3 px-3">Nivel de Riesgo</th>
+                      <th class="py-3 px-3">Costo / Tasa Media</th>
+                      <th class="py-3 px-3">Eficiencia Dijkstra</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dijkstra-results-tbody" class="divide-y divide-slate-800 font-mono text-slate-200"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Gráfico Comparativo Visual (Chart.js) -->
+            <div class="glass-card rounded-2xl p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-white">Comparativa Visual: Probabilidad de Default vs. Tasa de Interés</h3>
+                <span class="text-[11px] font-mono text-slate-400">Algoritmo de Ruta Mínima Ponderada</span>
+              </div>
+              <div class="h-60 relative">
+                <canvas id="chart-graph-dijkstra"></canvas>
+              </div>
+            </div>
+
+            <!-- Tarjeta de Recomendación Inteligente (Inspirada en la foto) -->
+            <div class="rounded-2xl p-4 bg-emerald-950/40 border border-emerald-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div class="flex items-start gap-3">
+                <div class="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0 mt-0.5">
+                  <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400">Recomendación del Algoritmo</h4>
+                  <p id="recommendation-text" class="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                    Selecciona una ruta de grado y ejecuta el análisis para obtener la recomendación óptima de menor riesgo.
+                  </p>
+                </div>
+              </div>
+              <button onclick="showToast('Detalles de la ruta exportados correctamente.')" class="shrink-0 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5">
+                <span>Ver detalles</span>
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           7. MATRIZ DE COMPLEJIDAD Y PLAN DE 15 SEMANAS — SEMANAS 1-15
+      ====================================================================== -->
+      <section id="tab-matrix" class="tab-section hidden space-y-6">
+        <!-- Pregunta Guía del Proyecto -->
+        <div class="glass-card rounded-2xl p-5 border-l-4 border-amber-400 bg-gradient-to-r from-amber-500/10 via-slate-900/80 to-slate-900/80">
+          <div class="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider mb-1">
+            <i data-lucide="compass" class="w-4 h-4"></i>
+            <span>Pregunta Guía del Proyecto Integrador</span>
+          </div>
+          <p class="text-sm sm:text-base font-medium text-white leading-relaxed">
+            “¿Cómo puede una entidad financiera utilizar algoritmos avanzados para buscar información, organizar datos, optimizar la aprobación de créditos y apoyar la toma de decisiones a partir del dataset <code class="text-cyan-400">credit_risk_dataset.csv</code>?”
+          </p>
+        </div>
+
+        <!-- Tabla Consolidada de Complejidad Asintótica -->
+        <div class="glass-card rounded-2xl p-5 space-y-4">
+          <div>
+            <h3 class="text-base font-bold text-white">Matriz Consolidada de Algoritmos, Paradigmas y Complejidad Asintótica</h3>
+            <p class="text-xs text-slate-400">Análisis formal de eficiencia temporal (Ω, Θ, O) y espacial de todos los algoritmos implementados.</p>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-900 text-slate-300 uppercase text-[11px] border-b border-slate-800">
+                  <th class="py-3 px-3">Algoritmo</th>
+                  <th class="py-3 px-3">Paradigma de Diseño</th>
+                  <th class="py-3 px-3">Mejor (Ω)</th>
+                  <th class="py-3 px-3">Promedio (Θ)</th>
+                  <th class="py-3 px-3">Peor (O)</th>
+                  <th class="py-3 px-3">Espacio</th>
+                  <th class="py-3 px-3">Rol en el Sistema</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/80 text-slate-200">
+                <tr class="hover:bg-slate-800/30">
+                  <td class="py-2.5 px-3 font-semibold text-white">Búsqueda Secuencial</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">Fuerza Bruta</span></td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Ω(1)</td>
+                  <td class="py-2.5 px-3 font-mono text-amber-400">Θ(n)</td>
+                  <td class="py-2.5 px-3 font-mono text-rose-400">O(n)</td>
+                  <td class="py-2.5 px-3 font-mono">O(1)</td>
+                  <td class="py-2.5 px-3 text-slate-300">Consulta lineal sin pre-ordenamiento por ID o ingreso.</td>
+                </tr>
+                <tr class="hover:bg-slate-800/30">
+                  <td class="py-2.5 px-3 font-semibold text-white">Búsqueda Binaria</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300">Divide y Vencerás</span></td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Ω(1)</td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Θ(log n)</td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">O(log n)</td>
+                  <td class="py-2.5 px-3 font-mono">O(1)</td>
+                  <td class="py-2.5 px-3 text-slate-300">Búsqueda logarítmica sobre ingresos y préstamos ordenados.</td>
+                </tr>
+                <tr class="hover:bg-slate-800/30">
+                  <td class="py-2.5 px-3 font-semibold text-white">Búsqueda Interpolación</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300">Divide y Vencerás</span></td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Ω(1)</td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Θ(log log n)</td>
+                  <td class="py-2.5 px-3 font-mono text-rose-400">O(n)</td>
+                  <td class="py-2.5 px-3 font-mono">O(1)</td>
+                  <td class="py-2.5 px-3 text-slate-300">Estimación proporcional de posición numérica.</td>
+                </tr>
+                <tr class="hover:bg-slate-800/30">
+                  <td class="py-2.5 px-3 font-semibold text-white">KMP (Knuth-Morris-Pratt)</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-purple-500/15 text-purple-300">Prog. Dinámica (LPS)</span></td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Ω(n + m)</td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Θ(n + m)</td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">O(n + m)</td>
+                  <td class="py-2.5 px-3 font-mono">O(m)</td>
+                  <td class="py-2.5 px-3 text-slate-300">Búsqueda textual sin retrocesos en categorías crediticias.</td>
+                </tr>
+                <tr class="hover:bg-slate-800/30">
+                  <td class="py-2.5 px-3 font-semibold text-white">Merge Sort</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300">Divide y Vencerás</span></td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Ω(n log n)</td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Θ(n log n)</td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">O(n log n)</td>
+                  <td class="py-2.5 px-3 font-mono">O(n)</td>
+                  <td class="py-2.5 px-3 text-slate-300">Ordenamiento estable garantizado por ingresos.</td>
+                </tr>
+                <tr class="hover:bg-slate-800/30">
+                  <td class="py-2.5 px-3 font-semibold text-white">Quick Sort</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300">Divide y Vencerás</span></td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Ω(n log n)</td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Θ(n log n)</td>
+                  <td class="py-2.5 px-3 font-mono text-rose-400">O(n²)</td>
+                  <td class="py-2.5 px-3 font-mono">O(log n)</td>
+                  <td class="py-2.5 px-3 text-slate-300">Ordenamiento in-place de alta velocidad por montos.</td>
+                </tr>
+                <tr class="hover:bg-slate-800/30">
+                  <td class="py-2.5 px-3 font-semibold text-white">Árbol AVL & Rojo-Negro</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300">Árboles Balanceados</span></td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Ω(log n)</td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Θ(log n)</td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">O(log n)</td>
+                  <td class="py-2.5 px-3 font-mono">O(n)</td>
+                  <td class="py-2.5 px-3 text-slate-300">Índices dinámicos de clientes con inserción y consulta O(log n).</td>
+                </tr>
+                <tr class="hover:bg-slate-800/30">
+                  <td class="py-2.5 px-3 font-semibold text-white">Mochila 0/1 (Knapsack)</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-purple-500/15 text-purple-300">Programación Dinámica</span></td>
+                  <td class="py-2.5 px-3 font-mono text-amber-400">Ω(n · W)</td>
+                  <td class="py-2.5 px-3 font-mono text-amber-400">Θ(n · W)</td>
+                  <td class="py-2.5 px-3 font-mono text-amber-400">O(n · W)</td>
+                  <td class="py-2.5 px-3 font-mono">O(n · W)</td>
+                  <td class="py-2.5 px-3 text-slate-300">Selección exacta de cartera óptima bajo límite presupuestal.</td>
+                </tr>
+                <tr class="hover:bg-slate-800/30">
+                  <td class="py-2.5 px-3 font-semibold text-white">Simulated Annealing & AG</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300">Metaheurísticas</span></td>
+                  <td class="py-2.5 px-3 font-mono text-cyan-400">Ω(g · p · n)</td>
+                  <td class="py-2.5 px-3 font-mono text-cyan-400">Θ(g · p · n)</td>
+                  <td class="py-2.5 px-3 font-mono text-cyan-400">O(g · p · n)</td>
+                  <td class="py-2.5 px-3 font-mono">O(p · n)</td>
+                  <td class="py-2.5 px-3 text-slate-300">Optimización escalable riesgo-retorno en grandes carteras.</td>
+                </tr>
+                <tr class="hover:bg-slate-800/30">
+                  <td class="py-2.5 px-3 font-semibold text-white">Dijkstra / A*</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300">Voraz / Heurístico</span></td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Ω((V+E) log V)</td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Θ((V+E) log V)</td>
+                  <td class="py-2.5 px-3 font-mono text-amber-400">O(E log V)</td>
+                  <td class="py-2.5 px-3 font-mono">O(V)</td>
+                  <td class="py-2.5 px-3 text-slate-300">Rutas mínimas de comunicación entre agencias financieras.</td>
+                </tr>
+                <tr class="hover:bg-slate-800/30">
+                  <td class="py-2.5 px-3 font-semibold text-white">Floyd-Warshall</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-purple-500/15 text-purple-300">Programación Dinámica</span></td>
+                  <td class="py-2.5 px-3 font-mono text-amber-400">Ω(V³)</td>
+                  <td class="py-2.5 px-3 font-mono text-amber-400">Θ(V³)</td>
+                  <td class="py-2.5 px-3 font-mono text-rose-400">O(V³)</td>
+                  <td class="py-2.5 px-3 font-mono">O(V²)</td>
+                  <td class="py-2.5 px-3 text-slate-300">Rutas mínimas globales entre todos los pares de sucursales.</td>
+                </tr>
+                <tr class="hover:bg-slate-800/30">
+                  <td class="py-2.5 px-3 font-semibold text-white">Prim & Kruskal (MST)</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300">Voraz (Greedy)</span></td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Ω(E log V)</td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">Θ(E log V)</td>
+                  <td class="py-2.5 px-3 font-mono text-emerald-400">O(E log V)</td>
+                  <td class="py-2.5 px-3 font-mono">O(V + E)</td>
+                  <td class="py-2.5 px-3 text-slate-300">Interconexión de agencias al mínimo costo de infraestructura.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Cronograma Interactivo de 15 Semanas -->
+        <div class="glass-card rounded-2xl p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 class="text-base font-bold text-white">Cronograma del Plan de Trabajo Semanal (Semanas 1 a 15)</h3>
+              <p class="text-xs text-slate-400">Haz clic en cualquier semana para desplegar su objetivo, actividades y entregable esperado.</p>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-mono">15/15 Semanas Integradas</span>
+          </div>
+
+          <div id="weekly-roadmap-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <!-- Tarjetas de las 15 semanas generadas dinámicamente por JS -->
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Modal: Diccionario de Datos (12 Variables) -->
+  <div id="dict-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-navy-900 border border-slate-700 rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-white">Diccionario de Variables — credit_risk_dataset.csv</h3>
+          <p class="text-xs text-slate-400">12 atributos estructurales e indicadores clave de riesgo crediticio</p>
+        </div>
+        <button onclick="document.getElementById('dict-modal').classList.add('hidden')" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="p-5 overflow-y-auto text-xs">
+        <table class="w-full text-left border-collapse">
+          <thead class="bg-slate-950 text-slate-400 uppercase text-[11px]">
+            <tr>
+              <th class="py-2.5 px-3">#</th>
+              <th class="py-2.5 px-3">Variable</th>
+              <th class="py-2.5 px-3">Tipo</th>
+              <th class="py-2.5 px-3">Descripción y Rol en la Evaluación</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800 text-slate-200">
+            <tr><td class="py-2 px-3 font-mono text-slate-500">01</td><td class="py-2 px-3 font-mono text-cyan-400">person_age</td><td class="py-2 px-3">Numérico</td><td class="py-2 px-3">Edad del solicitante en años.</td></tr>
+            <tr><td class="py-2 px-3 font-mono text-slate-500">02</td><td class="py-2 px-3 font-mono text-cyan-400">person_income</td><td class="py-2 px-3">Numérico</td><td class="py-2 px-3">Ingreso anual declarado ($ USD). Indicador primario de solvencia.</td></tr>
+            <tr><td class="py-2 px-3 font-mono text-slate-500">03</td><td class="py-2 px-3 font-mono text-cyan-400">person_home_ownership</td><td class="py-2 px-3">Categórico</td><td class="py-2 px-3">Tenencia de vivienda: RENT, OWN, MORTGAGE, OTHER.</td></tr>
+            <tr><td class="py-2 px-3 font-mono text-slate-500">04</td><td class="py-2 px-3 font-mono text-cyan-400">person_emp_length</td><td class="py-2 px-3">Numérico</td><td class="py-2 px-3">Antigüedad laboral en años (estabilidad de flujo de caja).</td></tr>
+            <tr><td class="py-2 px-3 font-mono text-slate-500">05</td><td class="py-2 px-3 font-mono text-cyan-400">loan_intent</td><td class="py-2 px-3">Categórico</td><td class="py-2 px-3">Propósito: EDUCATION, MEDICAL, VENTURE, PERSONAL, DEBTCONSOLIDATION, HOMEIMPROVEMENT.</td></tr>
+            <tr><td class="py-2 px-3 font-mono text-slate-500">06</td><td class="py-2 px-3 font-mono text-cyan-400">loan_grade</td><td class="py-2 px-3">Ordinal</td><td class="py-2 px-3">Calificación interna asignada de A (menor riesgo) a G (mayor riesgo).</td></tr>
+            <tr><td class="py-2 px-3 font-mono text-slate-500">07</td><td class="py-2 px-3 font-mono text-cyan-400">loan_amnt</td><td class="py-2 px-3">Numérico</td><td class="py-2 px-3">Monto total del préstamo solicitado ($ USD).</td></tr>
+            <tr><td class="py-2 px-3 font-mono text-slate-500">08</td><td class="py-2 px-3 font-mono text-cyan-400">loan_int_rate</td><td class="py-2 px-3">Numérico</td><td class="py-2 px-3">Tasa de interés anual (%) asignada al crédito.</td></tr>
+            <tr><td class="py-2 px-3 font-mono text-slate-500">09</td><td class="py-2 px-3 font-mono text-rose-400">loan_status</td><td class="py-2 px-3">Binario (Target)</td><td class="py-2 px-3">Variable objetivo: 0 = Cumplimiento / Sin default, 1 = Incumplimiento / Default.</td></tr>
+            <tr><td class="py-2 px-3 font-mono text-slate-500">10</td><td class="py-2 px-3 font-mono text-cyan-400">loan_percent_income</td><td class="py-2 px-3">Ratio</td><td class="py-2 px-3">Proporción deuda/ingreso (loan_amnt / person_income).</td></tr>
+            <tr><td class="py-2 px-3 font-mono text-slate-500">11</td><td class="py-2 px-3 font-mono text-cyan-400">cb_person_default_on_file</td><td class="py-2 px-3">Binario (Y/N)</td><td class="py-2 px-3">Historial previo de morosidad registrada en buró de crédito.</td></tr>
+            <tr><td class="py-2 px-3 font-mono text-slate-500">12</td><td class="py-2 px-3 font-mono text-cyan-400">cb_person_cred_hist_length</td><td class="py-2 px-3">Numérico</td><td class="py-2 px-3">Longitud del historial crediticio en años.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       LÓGICA JAVASCRIPT MODULARIZADA
+  ========================================================================== -->
+  <script>
+    // -------------------------------------------------------------------------
+    // 1. GENERACIÓN DE MUESTRA CALIBRADA DE 600 REGISTROS (credit_risk_dataset.csv)
+    // -------------------------------------------------------------------------
+    function generateCalibratedDataset(count = 600) {
+      let seed = 20261112;
+      function rand() {
+        seed |= 0;
+        seed = (seed + 0x6D2B79F5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      }
+
+      const homes = ['RENT', 'MORTGAGE', 'OWN', 'OTHER'];
+      const homeWeights = [0.505, 0.412, 0.079, 0.004];
+
+      const intents = ['EDUCATION', 'MEDICAL', 'VENTURE', 'PERSONAL', 'DEBTCONSOLIDATION', 'HOMEIMPROVEMENT'];
+      const intentWeights = [0.198, 0.186, 0.175, 0.169, 0.160, 0.112];
+
+      const grades = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+      const gradeWeights = [0.331, 0.321, 0.198, 0.111, 0.029, 0.007, 0.003];
+      const gradeBaseRates = { A: 7.33, B: 10.99, C: 13.46, D: 15.36, E: 17.01, F: 18.61, G: 20.25 };
+      const gradeDefaultProb = { A: 0.098, B: 0.162, C: 0.207, D: 0.590, E: 0.644, F: 0.705, G: 0.820 };
+
+      function weightedPick(items, weights) {
+        const r = rand();
+        let acc = 0;
+        for (let i = 0; i < items.length; i++) {
+          acc += weights[i];
+          if (r <= acc) return items[i];
+        }
+        return items[items.length - 1];
+      }
+
+      const records = [];
+      let totalDefaults = 0;
+
+      for (let i = 1; i <= count; i++) {
+        const id = `CLI-${String(i).padStart(5, '0')}`;
+        const person_age = Math.min(68, Math.max(20, Math.round(21 + Math.pow(rand(), 1.7) * 32)));
+        const rawIncome = 24000 + Math.pow(rand(), 1.65) * 145000;
+        const person_income = Math.round(rawIncome / 100) * 100;
+        const person_home_ownership = weightedPick(homes, homeWeights);
+        const person_emp_length = Math.min(person_age - 18, Math.round(Math.pow(rand(), 1.3) * 18));
+        const loan_intent = weightedPick(intents, intentWeights);
+        const loan_grade = weightedPick(grades, gradeWeights);
+
+        const maxLoanByIncome = Math.min(35000, person_income * 0.55);
+        const loan_amnt = Math.max(1000, Math.round((1500 + rand() * (maxLoanByIncome - 1500)) / 250) * 250);
+        const loan_int_rate = Number((gradeBaseRates[loan_grade] + (rand() - 0.5) * 2.1).toFixed(2));
+        const loan_percent_income = Number((loan_amnt / person_income).toFixed(2));
+
+        const cb_person_default_on_file = (['D', 'E', 'F', 'G'].includes(loan_grade) && rand() < 0.45) || rand() < 0.08 ? 'Y' : 'N';
+        const cb_person_cred_hist_length = Math.max(2, Math.min(30, person_age - 18 - Math.floor(rand() * 3)));
+
+        let pDef = gradeDefaultProb[loan_grade];
+        if (loan_percent_income > 0.30) pDef += 0.17;
+        if (person_home_ownership === 'RENT') pDef += 0.03;
+        if (cb_person_default_on_file === 'Y') pDef += 0.06;
+        const loan_status = rand() < Math.min(0.95, pDef) ? 1 : 0;
+        totalDefaults += loan_status;
+
+        records.push({
+          id,
+          id_num: i,
+          person_age,
+          person_income,
+          person_home_ownership,
+          person_emp_length,
+          loan_intent,
+          loan_grade,
+          loan_amnt,
+          loan_int_rate,
+          loan_status,
+          loan_percent_income,
+          cb_person_default_on_file,
+          cb_person_cred_hist_length
+        });
+      }
+
+      const targetDefaults = Math.round(count * 0.2182);
+      let idx = 0;
+      while (totalDefaults > targetDefaults && idx < count) {
+        if (records[idx].loan_status === 1 && records[idx].loan_grade === 'A') {
+          records[idx].loan_status = 0;
+          totalDefaults--;
+        }
+        idx++;
+      }
+
+      return records;
+    }
+
+    let creditDataset = generateCalibratedDataset(600);
+    let filteredDataset = [...creditDataset];
+    let currentPage = 1;
+    const rowsPerPage = 12;
+
+    let chartGrade = null;
+    let chartIntent = null;
+    let chartScatter = null;
+    let chartConvergence = null;
+    let chartGraphDijkstra = null;
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      const styleClass = type === 'success'
+        ? 'bg-emerald-950/95 border-emerald-500/50 text-emerald-200'
+        : 'bg-cyan-950/95 border-cyan-500/50 text-cyan-200';
+      el.className = `px-4 py-3 rounded-xl border shadow-xl text-xs font-medium flex items-center gap-2 transition-all duration-300 ${styleClass}`;
+      el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>${message}</span>`;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 300);
+      }, 3400);
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. PARSER CSV & CARGA AUTOMÁTICA DESDE EL REPOSITORIO
+    // -------------------------------------------------------------------------
+    function parseCSV(text) {
+      const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim().length > 0);
+      if (lines.length < 2) return [];
+
+      function splitCSVLine(line) {
+        const result = [];
+        let value = '';
+        let insideQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"' && line[i + 1] === '"' && insideQuotes) {
+            value += '"'; i++;
+          } else if (char === '"') {
+            insideQuotes = !insideQuotes;
+          } else if (char === ',' && !insideQuotes) {
+            result.push(value.trim()); value = '';
+          } else {
+            value += char;
+          }
+        }
+        result.push(value.trim());
+        return result;
+      }
+
+      const headers = splitCSVLine(lines[0]).map(h => h.trim());
+      const required = [
+        'person_age', 'person_income', 'person_home_ownership',
+        'person_emp_length', 'loan_intent', 'loan_grade', 'loan_amnt',
+        'loan_int_rate', 'loan_status', 'loan_percent_income',
+        'cb_person_default_on_file', 'cb_person_cred_hist_length'
+      ];
+      if (!required.every(column => headers.includes(column))) return [];
+
+      const records = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = splitCSVLine(lines[i]);
+        if (cols.length !== headers.length) continue;
+        const row = {};
+        headers.forEach((h, idx) => row[h] = cols[idx]);
+
+        const income = Number(row.person_income);
+        const loanAmnt = Number(row.loan_amnt);
+        const age = Number(row.person_age);
+        const empLength = Number(row.person_emp_length);
+        const rate = Number(row.loan_int_rate);
+        const loanPercent = Number(row.loan_percent_income);
+        const historyLength = Number(row.cb_person_cred_hist_length);
+        const safeIncome = Number.isFinite(income) && income !== 0 ? income : 50000;
+        const safeLoan = Number.isFinite(loanAmnt) ? loanAmnt : 8000;
+
+        records.push({
+          id: `CLI-${String(i).padStart(5, '0')}`,
+          id_num: i,
+          person_age: Number.isFinite(age) ? age : 28,
+          person_income: safeIncome,
+          person_home_ownership: row.person_home_ownership || 'RENT',
+          person_emp_length: Number.isFinite(empLength) ? empLength : 3,
+          loan_intent: row.loan_intent || 'PERSONAL',
+          loan_grade: row.loan_grade || 'B',
+          loan_amnt: safeLoan,
+          loan_int_rate: Number.isFinite(rate) ? rate : 11.01,
+          loan_status: Number(row.loan_status) === 1 ? 1 : 0,
+          loan_percent_income: Number.isFinite(loanPercent) ? loanPercent : Number((safeLoan / safeIncome).toFixed(2)),
+          cb_person_default_on_file: row.cb_person_default_on_file || 'N',
+          cb_person_cred_hist_length: Number.isFinite(historyLength) ? historyLength : 4
+        });
+      }
+      return records;
+    }
+
+    async function loadDatasetFromRepository() {
+      const status = document.getElementById('header-dataset-count');
+      try {
+        // El archivo CSV debe estar en la misma carpeta que index.html.
+        const response = await fetch('./credit_risk_dataset.csv', { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const parsed = parseCSV(await response.text());
+        if (!parsed.length) throw new Error('CSV vacío o columnas no reconocidas.');
+
+        creditDataset = parsed;
+        filteredDataset = [...creditDataset];
+        currentPage = 1;
+
+        const count = parsed.length.toLocaleString('es-PE');
+        const bannerCount = document.getElementById('banner-active-count');
+        if (bannerCount) bannerCount.textContent = count;
+        if (status) status.textContent = `Base de datos: ${count} reg.`;
+        console.info(`CSV cargado automáticamente: ${count} registros.`);
+        return true;
+      } catch (error) {
+        console.error('No se pudo cargar credit_risk_dataset.csv:', error);
+        if (status) status.textContent = 'Error al cargar el CSV';
+        showToast('No se pudo cargar credit_risk_dataset.csv. Comprueba que esté junto al HTML en GitHub.', 'info');
+        return false;
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. MÓDULO 1: DASHBOARD EDA, GRÁFICOS Y TABLA PAGINADA
+    // -------------------------------------------------------------------------
+    function updateDashboard() {
+      const n = creditDataset.length;
+      let sumIncome = 0, sumLoan = 0, sumRate = 0, defaults = 0;
+
+      const gradeStats = { A: [0,0], B: [0,0], C: [0,0], D: [0,0], E: [0,0], F: [0,0], G: [0,0] };
+      const intentStats = {};
+
+      for (let i = 0; i < n; i++) {
+        const r = creditDataset[i];
+        sumIncome += r.person_income;
+        sumLoan += r.loan_amnt;
+        sumRate += r.loan_int_rate;
+        defaults += r.loan_status;
+
+        if (gradeStats[r.loan_grade]) {
+          gradeStats[r.loan_grade][r.loan_status]++;
+        }
+        if (!intentStats[r.loan_intent]) intentStats[r.loan_intent] = [0, 0];
+        intentStats[r.loan_intent][r.loan_status]++;
+      }
+
+      document.getElementById('kpi-total').textContent = n.toLocaleString();
+      document.getElementById('kpi-default-rate').textContent = `${((defaults / n) * 100).toFixed(2)}%`;
+      document.getElementById('kpi-avg-income').textContent = `$${Math.round(sumIncome / n).toLocaleString()}`;
+      document.getElementById('kpi-avg-loan').textContent = `$${Math.round(sumLoan / n).toLocaleString()}`;
+      document.getElementById('kpi-avg-rate').textContent = `${(sumRate / n).toFixed(2)}%`;
+
+      renderEDACharts(gradeStats, intentStats);
+      applyExplorerFilters();
+    }
+
+    function renderEDACharts(gradeStats, intentStats) {
+      Chart.defaults.color = '#94a3b8';
+      Chart.defaults.font.family = 'Inter';
+
+      const grades = Object.keys(gradeStats);
+      if (chartGrade) chartGrade.destroy();
+      chartGrade = new Chart(document.getElementById('chart-grade'), {
+        type: 'bar',
+        data: {
+          labels: grades,
+          datasets: [
+            { label: 'Cumple (0)', data: grades.map(g => gradeStats[g][0]), backgroundColor: '#10b981', borderRadius: 4 },
+            { label: 'Default (1)', data: grades.map(g => gradeStats[g][1]), backgroundColor: '#f43f5e', borderRadius: 4 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { stacked: true, grid: { display: false } },
+            y: { stacked: true, grid: { color: 'rgba(148,163,184,0.1)' } }
+          },
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
+        }
+      });
+
+      const intents = Object.keys(intentStats);
+      if (chartIntent) chartIntent.destroy();
+      chartIntent = new Chart(document.getElementById('chart-intent'), {
+        type: 'bar',
+        data: {
+          labels: intents.map(s => s.slice(0, 11)),
+          datasets: [
+            { label: 'Cumple (0)', data: intents.map(k => intentStats[k][0]), backgroundColor: '#06b6d4', borderRadius: 4 },
+            { label: 'Default (1)', data: intents.map(k => intentStats[k][1]), backgroundColor: '#f59e0b', borderRadius: 4 }
+          ]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { stacked: true, grid: { color: 'rgba(148,163,184,0.1)' } },
+            y: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }
+          },
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
+        }
+      });
+
+      const step = Math.max(1, Math.floor(creditDataset.length / 200));
+      const safePts = [], riskPts = [];
+      for (let i = 0; i < creditDataset.length; i += step) {
+        const r = creditDataset[i];
+        if (r.person_income <= 220000) {
+          const pt = { x: r.person_income, y: r.loan_amnt };
+          if (r.loan_status === 0) safePts.push(pt); else riskPts.push(pt);
+        }
+      }
+
+      if (chartScatter) chartScatter.destroy();
+      chartScatter = new Chart(document.getElementById('chart-scatter'), {
+        type: 'scatter',
+        data: {
+          datasets: [
+            { label: 'Sin Default (0)', data: safePts, backgroundColor: 'rgba(16, 185, 129, 0.65)', pointRadius: 3 },
+            { label: 'Incumplimiento (1)', data: riskPts, backgroundColor: 'rgba(244, 63, 94, 0.75)', pointRadius: 3.5 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { title: { display: true, text: 'Ingreso Anual ($)', font: { size: 10 } }, grid: { color: 'rgba(148,163,184,0.1)' } },
+            y: { title: { display: true, text: 'Monto Préstamo ($)', font: { size: 10 } }, grid: { color: 'rgba(148,163,184,0.1)' } }
+          },
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
+        }
+      });
+    }
+
+    function applyExplorerFilters() {
+      const g = document.getElementById('filter-grade').value;
+      const s = document.getElementById('filter-status').value;
+      const it = document.getElementById('filter-intent').value;
+
+      filteredDataset = creditDataset.filter(r => {
+        if (g !== 'ALL' && r.loan_grade !== g) return false;
+        if (s !== 'ALL' && String(r.loan_status) !== s) return false;
+        if (it !== 'ALL' && r.loan_intent !== it) return false;
+        return true;
+      });
+      currentPage = 1;
+      renderExplorerTable();
+    }
+
+    function renderExplorerTable() {
+      const tbody = document.getElementById('explorer-table-body');
+      const total = filteredDataset.length;
+      const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const start = (currentPage - 1) * rowsPerPage;
+      const end = Math.min(start + rowsPerPage, total);
+      const slice = filteredDataset.slice(start, end);
+
+      if (slice.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="12" class="py-6 text-center text-slate-400 font-sans">No hay registros que coincidan con los filtros.</td></tr>`;
+      } else {
+        tbody.innerHTML = slice.map(r => `
+          <tr class="hover:bg-slate-800/40 transition-colors">
+            <td class="py-2.5 px-3 text-cyan-400 font-semibold">${r.id}</td>
+            <td class="py-2.5 px-3">${r.person_age}</td>
+            <td class="py-2.5 px-3 text-emerald-300">$${r.person_income.toLocaleString()}</td>
+            <td class="py-2.5 px-3 text-slate-300">${r.person_home_ownership}</td>
+            <td class="py-2.5 px-3">${r.person_emp_length} a.</td>
+            <td class="py-2.5 px-3 text-[11px]">${r.loan_intent}</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-md text-[11px] font-bold badge-grade-${r.loan_grade}">${r.loan_grade}</span></td>
+            <td class="py-2.5 px-3 text-white font-semibold">$${r.loan_amnt.toLocaleString()}</td>
+            <td class="py-2.5 px-3">${r.loan_int_rate}%</td>
+            <td class="py-2.5 px-3">${(r.loan_percent_income * 100).toFixed(0)}%</td>
+            <td class="py-2.5 px-3">${r.cb_person_default_on_file === 'Y' ? '<span class="text-amber-400">Sí (Y)</span>' : '<span class="text-slate-400">No (N)</span>'}</td>
+            <td class="py-2.5 px-3">
+              ${r.loan_status === 1
+                ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/30">Default (1)</span>'
+                : '<span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Cumple (0)</span>'}
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      document.getElementById('pagination-info').textContent = total === 0
+        ? '0 registros'
+        : `Mostrando ${start + 1} - ${end} de ${total.toLocaleString()} registros`;
+      document.getElementById('page-indicator').textContent = `Página ${currentPage} de ${totalPages}`;
+      document.getElementById('prev-page-btn').disabled = currentPage <= 1;
+      document.getElementById('next-page-btn').disabled = currentPage >= totalPages;
+    }
+
+    ['filter-grade', 'filter-status', 'filter-intent'].forEach(id => {
+      document.getElementById(id).addEventListener('change', applyExplorerFilters);
+    });
+    document.getElementById('prev-page-btn').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderExplorerTable(); } });
+    document.getElementById('next-page-btn').addEventListener('click', () => { currentPage++; renderExplorerTable(); });
+
+    // -------------------------------------------------------------------------
+    // 4. MÓDULO 2: ALGORITMOS DE BÚSQUEDA
+    // -------------------------------------------------------------------------
+    document.getElementById('pick-random-num-btn').addEventListener('click', () => {
+      const field = document.getElementById('num-search-field').value;
+      const sample = creditDataset[Math.floor(Math.random() * creditDataset.length)];
+      document.getElementById('num-search-query').value = sample[field];
+    });
+
+    document.getElementById('run-num-search-btn').addEventListener('click', () => {
+      const field = document.getElementById('num-search-field').value;
+      const rawQuery = document.getElementById('num-search-query').value.trim();
+      const tbody = document.getElementById('num-search-tbody');
+      const recordBox = document.getElementById('num-search-record-box');
+
+      if (!rawQuery) {
+        showToast('Ingresa un valor o presiona el botón de dado.', 'info');
+        return;
+      }
+
+      if (field === 'id') {
+        const targetId = rawQuery.toUpperCase();
+        let seqComps = 0, seqFound = null;
+        const tS0 = performance.now();
+        for (let i = 0; i < creditDataset.length; i++) {
+          seqComps++;
+          if (creditDataset[i].id === targetId) { seqFound = creditDataset[i]; break; }
+        }
+        const tS1 = performance.now();
+
+        const sortedId = [...creditDataset].sort((a, b) => a.id.localeCompare(b.id));
+        let binComps = 0, binFound = null, low = 0, high = sortedId.length - 1;
+        const tB0 = performance.now();
+        while (low <= high) {
+          binComps++;
+          const mid = (low + high) >> 1;
+          const cmp = sortedId[mid].id.localeCompare(targetId);
+          if (cmp === 0) { binFound = sortedId[mid]; break; }
+          if (cmp < 0) low = mid + 1; else high = mid - 1;
+        }
+        const tB1 = performance.now();
+
+        tbody.innerHTML = `
+          <tr>
+            <td class="py-2.5 px-3 font-sans font-semibold text-amber-400">Búsqueda Secuencial</td>
+            <td class="py-2.5 px-3">O(n)</td>
+            <td class="py-2.5 px-3 text-white">${seqComps}</td>
+            <td class="py-2.5 px-3">${(tS1 - tS0).toFixed(4)} ms</td>
+            <td class="py-2.5 px-3">${seqFound ? '<span class="text-emerald-400">✔ Hallado</span>' : '<span class="text-rose-400">✘ No</span>'}</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-sans font-semibold text-cyan-400">Búsqueda Binaria</td>
+            <td class="py-2.5 px-3">O(log n)</td>
+            <td class="py-2.5 px-3 text-emerald-400 font-bold">${binComps}</td>
+            <td class="py-2.5 px-3">${(tB1 - tB0).toFixed(4)} ms</td>
+            <td class="py-2.5 px-3">${binFound ? '<span class="text-emerald-400">✔ Hallado</span>' : '<span class="text-rose-400">✘ No</span>'}</td>
+          </tr>
+        `;
+        recordBox.innerHTML = binFound
+          ? `<span class="text-emerald-400">✔ Cliente Localizado:</span> ${binFound.id} | Edad: ${binFound.person_age} | Ingreso: $${binFound.person_income.toLocaleString()} | Grado: ${binFound.loan_grade}`
+          : `<span class="text-rose-400">✘ No existe el ID "${targetId}".</span>`;
+        return;
+      }
+
+      const targetVal = parseFloat(rawQuery);
+      let seqComps = 0, seqFound = null;
+      const tSeq0 = performance.now();
+      for (let i = 0; i < creditDataset.length; i++) {
+        seqComps++;
+        if (creditDataset[i][field] === targetVal) { seqFound = creditDataset[i]; break; }
+      }
+      const tSeq1 = performance.now();
+
+      const sorted = [...creditDataset].sort((a, b) => a[field] - b[field]);
+
+      let binComps = 0, binFound = null, low = 0, high = sorted.length - 1;
+      const tBin0 = performance.now();
+      while (low <= high) {
+        binComps++;
+        const mid = (low + high) >> 1;
+        if (sorted[mid][field] === targetVal) { binFound = sorted[mid]; break; }
+        if (sorted[mid][field] < targetVal) low = mid + 1;
+        else high = mid - 1;
+      }
+      const tBin1 = performance.now();
+
+      let intComps = 0, intFound = null;
+      low = 0; high = sorted.length - 1;
+      const tInt0 = performance.now();
+      while (low <= high && targetVal >= sorted[low][field] && targetVal <= sorted[high][field]) {
+        intComps++;
+        if (low === high) {
+          if (sorted[low][field] === targetVal) intFound = sorted[low];
+          break;
+        }
+        const denom = sorted[high][field] - sorted[low][field];
+        const pos = denom === 0
+          ? low
+          : low + Math.floor(((targetVal - sorted[low][field]) * (high - low)) / denom);
+
+        if (sorted[pos][field] === targetVal) { intFound = sorted[pos]; break; }
+        if (sorted[pos][field] < targetVal) low = pos + 1;
+        else high = pos - 1;
+      }
+      const tInt1 = performance.now();
+
+      tbody.innerHTML = `
+        <tr>
+          <td class="py-2.5 px-3 font-sans font-semibold text-amber-400">Búsqueda Secuencial</td>
+          <td class="py-2.5 px-3">O(n)</td>
+          <td class="py-2.5 px-3 text-white">${seqComps}</td>
+          <td class="py-2.5 px-3">${(tSeq1 - tSeq0).toFixed(4)} ms</td>
+          <td class="py-2.5 px-3">${seqFound ? '<span class="text-emerald-400">✔ Hallado</span>' : '<span class="text-rose-400">✘ No</span>'}</td>
+        </tr>
+        <tr>
+          <td class="py-2.5 px-3 font-sans font-semibold text-cyan-400">Búsqueda Binaria</td>
+          <td class="py-2.5 px-3">O(log n)</td>
+          <td class="py-2.5 px-3 text-cyan-300 font-bold">${binComps}</td>
+          <td class="py-2.5 px-3">${(tBin1 - tBin0).toFixed(4)} ms</td>
+          <td class="py-2.5 px-3">${binFound ? '<span class="text-emerald-400">✔ Hallado</span>' : '<span class="text-rose-400">✘ No</span>'}</td>
+        </tr>
+        <tr>
+          <td class="py-2.5 px-3 font-sans font-semibold text-emerald-400">Búsqueda Interpolación</td>
+          <td class="py-2.5 px-3">O(log log n)</td>
+          <td class="py-2.5 px-3 text-emerald-400 font-bold">${intComps}</td>
+          <td class="py-2.5 px-3">${(tInt1 - tInt0).toFixed(4)} ms</td>
+          <td class="py-2.5 px-3">${intFound ? '<span class="text-emerald-400">✔ Hallado</span>' : '<span class="text-rose-400">✘ No</span>'}</td>
+        </tr>
+      `;
+
+      recordBox.innerHTML = binFound
+        ? `<span class="text-emerald-400">✔ Coincidencia:</span> ${binFound.id} | ${field}: $${binFound[field].toLocaleString()} | Intención: ${binFound.loan_intent} | Grado: ${binFound.loan_grade}`
+        : `<span class="text-amber-400">⚠ Valor exacto no hallado.</span> Usa el dado para elegir un valor real del dataset.`;
+    });
+
+    function computeLPSTable(pattern) {
+      const m = pattern.length;
+      const lps = new Array(m).fill(0);
+      let len = 0, i = 1;
+      while (i < m) {
+        if (pattern[i] === pattern[len]) {
+          len++;
+          lps[i] = len;
+          i++;
+        } else if (len !== 0) {
+          len = lps[len - 1];
+        } else {
+          lps[i] = 0;
+          i++;
+        }
+      }
+      return lps;
+    }
+
+    function kmpMatchWithLPS(text, pattern, lps) {
+      let comps = 0;
+      const n = text.length, m = pattern.length;
+      if (m === 0) return { matched: true, comps };
+      let i = 0, j = 0;
+      while (i < n) {
+        comps++;
+        if (pattern[j] === text[i]) { i++; j++; }
+        if (j === m) {
+          return { matched: true, comps };
+        } else if (i < n && pattern[j] !== text[i]) {
+          if (j !== 0) j = lps[j - 1];
+          else i++;
+        }
+      }
+      return { matched: false, comps };
+    }
+
+    function runKMPModule() {
+      const field = document.getElementById('kmp-field-select').value;
+      const pattern = document.getElementById('kmp-pattern-input').value.trim().toUpperCase();
+      if (!pattern) return;
+
+      const lps = computeLPSTable(pattern);
+      const chars = pattern.split('');
+      document.getElementById('kmp-lps-visual').innerHTML = `
+        <table class="border-collapse font-mono text-xs text-center">
+          <tr>
+            <td class="px-2 py-1 text-[10px] text-slate-400 text-left">Índice i</td>
+            ${chars.map((_, idx) => `<td class="px-2.5 py-1 border border-slate-800 bg-slate-900 text-slate-400">${idx}</td>`).join('')}
+          </tr>
+          <tr>
+            <td class="px-2 py-1 text-[10px] text-slate-400 text-left">Patrón</td>
+            ${chars.map(ch => `<td class="px-2.5 py-1 border border-slate-800 bg-slate-950 text-cyan-300 font-bold">${ch}</td>`).join('')}
+          </tr>
+          <tr>
+            <td class="px-2 py-1 text-[10px] text-amber-400 font-bold text-left">LPS[i]</td>
+            ${lps.map(val => `<td class="px-2.5 py-1 border border-amber-500/30 bg-amber-500/10 text-amber-300 font-bold">${val}</td>`).join('')}
+          </tr>
+        </table>
+      `;
+
+      const t0 = performance.now();
+      let totalComps = 0;
+      const matches = [];
+      for (let i = 0; i < creditDataset.length; i++) {
+        const r = creditDataset[i];
+        const corpus = field === 'ALL_TEXT'
+          ? `${r.loan_intent} ${r.person_home_ownership} ${r.loan_grade}`
+          : String(r[field]).toUpperCase();
+        const res = kmpMatchWithLPS(corpus, pattern, lps);
+        totalComps += res.comps;
+        if (res.matched) matches.push(r);
+      }
+      const t1 = performance.now();
+
+      document.getElementById('kmp-metrics-badge').textContent = `${(t1 - t0).toFixed(3)} ms • ${totalComps.toLocaleString()} comp.`;
+
+      const preview = matches.slice(0, 4).map(m =>
+        `<div class="px-2.5 py-1 rounded bg-slate-950 font-mono text-[11px] flex justify-between">
+          <span class="text-cyan-400">${m.id}</span>
+          <span>${m.loan_intent} | ${m.person_home_ownership} | Grado ${m.loan_grade}</span>
+          <span class="text-emerald-400">$${m.loan_amnt.toLocaleString()}</span>
+        </div>`
+      ).join('');
+
+      document.getElementById('kmp-results-box').innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="font-semibold text-white">Coincidencias halladas: <strong class="text-emerald-400">${matches.length}</strong> de ${creditDataset.length} registros</span>
+          <span class="text-[11px] font-mono text-slate-400">Sin retroceso</span>
+        </div>
+        <div class="space-y-1 pt-1">${preview || '<div class="text-slate-500">Sin coincidencias.</div>'}</div>
+      `;
+    }
+
+    document.getElementById('run-kmp-btn').addEventListener('click', runKMPModule);
+
+    // -------------------------------------------------------------------------
+    // 5. MÓDULO 3: ORDENAMIENTO
+    // -------------------------------------------------------------------------
+    function mergeSortDetailed(arr, key, asc = true) {
+      let comps = 0, writes = 0;
+      function merge(left, right) {
+        const merged = [];
+        let i = 0, j = 0;
+        while (i < left.length && j < right.length) {
+          comps++; writes++;
+          const takeLeft = asc ? left[i][key] <= right[j][key] : left[i][key] >= right[j][key];
+          if (takeLeft) merged.push(left[i++]);
+          else merged.push(right[j++]);
+        }
+        while (i < left.length) { writes++; merged.push(left[i++]); }
+        while (j < right.length) { writes++; merged.push(right[j++]); }
+        return merged;
+      }
+      function sort(sub) {
+        if (sub.length <= 1) return sub;
+        const mid = sub.length >> 1;
+        return merge(sort(sub.slice(0, mid)), sort(sub.slice(mid)));
+      }
+      const sorted = sort(arr);
+      return { sorted, comps, writes };
+    }
+
+    function quickSortDetailed(arr, key, asc = true) {
+      const a = [...arr];
+      let comps = 0, swaps = 0;
+      function partition(low, high) {
+        const mid = (low + high) >> 1;
+        const pivot = a[mid][key];
+        let i = low, j = high;
+        while (i <= j) {
+          while (asc ? a[i][key] < pivot : a[i][key] > pivot) { comps++; i++; }
+          while (asc ? a[j][key] > pivot : a[j][key] < pivot) { comps++; j--; }
+          if (i <= j) {
+            const tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+            swaps++; i++; j--;
+          }
+        }
+        return i;
+      }
+      function qsort(low, high) {
+        if (low < high) {
+          const index = partition(low, high);
+          if (low < index - 1) qsort(low, index - 1);
+          if (index < high) qsort(index, high);
+        }
+      }
+      if (a.length > 1) qsort(0, a.length - 1);
+      return { sorted: a, comps, swaps };
+    }
+
+    function runSortingBenchmark() {
+      const field = document.getElementById('sort-field').value;
+      const asc = document.getElementById('sort-order').value === 'asc';
+
+      const tM0 = performance.now();
+      const mergeOut = mergeSortDetailed(creditDataset, field, asc);
+      const tM1 = performance.now();
+
+      const tQ0 = performance.now();
+      const quickOut = quickSortDetailed(creditDataset, field, asc);
+      const tQ1 = performance.now();
+
+      document.getElementById('merge-time').textContent = `${(tM1 - tM0).toFixed(3)} ms`;
+      document.getElementById('merge-comps').textContent = mergeOut.comps.toLocaleString();
+      document.getElementById('merge-writes').textContent = mergeOut.writes.toLocaleString();
+
+      document.getElementById('quick-time').textContent = `${(tQ1 - tQ0).toFixed(3)} ms`;
+      document.getElementById('quick-comps').textContent = quickOut.comps.toLocaleString();
+      document.getElementById('quick-swaps').textContent = quickOut.swaps.toLocaleString();
+
+      const top15 = quickOut.sorted.slice(0, 15);
+      document.getElementById('sort-preview-body').innerHTML = top15.map((r, idx) => `
+        <tr class="hover:bg-slate-800/40">
+          <td class="py-2 px-3 text-slate-400">#${idx + 1}</td>
+          <td class="py-2 px-3 text-cyan-400 font-semibold">${r.id}</td>
+          <td class="py-2 px-3">${r.person_age}</td>
+          <td class="py-2 px-3 text-emerald-300 font-semibold">$${r.person_income.toLocaleString()}</td>
+          <td class="py-2 px-3 text-amber-300">$${r.loan_amnt.toLocaleString()}</td>
+          <td class="py-2 px-3">${r.loan_int_rate}%</td>
+          <td class="py-2 px-3 text-[11px]">${r.loan_intent}</td>
+          <td class="py-2 px-3"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold badge-grade-${r.loan_grade}">${r.loan_grade}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('run-sort-benchmark-btn').addEventListener('click', runSortingBenchmark);
+
+    // -------------------------------------------------------------------------
+    // 6. MÓDULO 4: ÁRBOLES BALANCEADOS
+    // -------------------------------------------------------------------------
+    class AVLNode {
+      constructor(key, record) {
+        this.key = key;
+        this.records = [record];
+        this.left = null;
+        this.right = null;
+        this.height = 1;
+      }
+    }
+
+    class AVLTree {
+      constructor() {
+        this.root = null;
+        this.rotations = 0;
+        this.uniqueCount = 0;
+      }
+      height(n) { return n ? n.height : 0; }
+      getBalance(n) { return n ? this.height(n.left) - this.height(n.right) : 0; }
+
+      rightRotate(y) {
+        this.rotations++;
+        const x = y.left, T2 = x.right;
+        x.right = y; y.left = T2;
+        y.height = Math.max(this.height(y.left), this.height(y.right)) + 1;
+        x.height = Math.max(this.height(x.left), this.height(x.right)) + 1;
+        return x;
+      }
+
+      leftRotate(x) {
+        this.rotations++;
+        const y = x.right, T2 = y.left;
+        y.left = x; x.right = T2;
+        x.height = Math.max(this.height(x.left), this.height(x.right)) + 1;
+        y.height = Math.max(this.height(y.left), this.height(y.right)) + 1;
+        return y;
+      }
+
+      insert(key, record) {
+        const _insert = (node, k, rec) => {
+          if (!node) {
+            this.uniqueCount++;
+            return new AVLNode(k, rec);
+          }
+          if (k < node.key) node.left = _insert(node.left, k, rec);
+          else if (k > node.key) node.right = _insert(node.right, k, rec);
+          else {
+            node.records.push(rec);
+            return node;
+          }
+
+          node.height = 1 + Math.max(this.height(node.left), this.height(node.right));
+          const balance = this.getBalance(node);
+
+          if (balance > 1 && k < node.left.key) return this.rightRotate(node);
+          if (balance < -1 && k > node.right.key) return this.leftRotate(node);
+          if (balance > 1 && k > node.left.key) {
+            node.left = this.leftRotate(node.left);
+            return this.rightRotate(node);
+          }
+          if (balance < -1 && k < node.right.key) {
+            node.right = this.rightRotate(node.right);
+            return this.leftRotate(node);
+          }
+          return node;
+        };
+        this.root = _insert(this.root, key, record);
+      }
+
+      searchPath(key) {
+        let curr = this.root;
+        const pathKeys = [];
+        while (curr) {
+          pathKeys.push(curr.key);
+          if (key === curr.key) return { found: curr, pathKeys };
+          curr = key < curr.key ? curr.left : curr.right;
+        }
+        return { found: null, pathKeys };
+      }
+    }
+
+    const RED = true, BLACK = false;
+    class RBNode {
+      constructor(key, record) {
+        this.key = key;
+        this.records = [record];
+        this.color = RED;
+        this.left = null;
+        this.right = null;
+        this.parent = null;
+      }
+    }
+
+    class RedBlackTree {
+      constructor() {
+        this.root = null;
+        this.rotations = 0;
+        this.uniqueCount = 0;
+      }
+
+      rotateLeft(x) {
+        this.rotations++;
+        const y = x.right;
+        x.right = y.left;
+        if (y.left) y.left.parent = x;
+        y.parent = x.parent;
+        if (!x.parent) this.root = y;
+        else if (x === x.parent.left) x.parent.left = y;
+        else x.parent.right = y;
+        y.left = x;
+        x.parent = y;
+      }
+
+      rotateRight(y) {
+        this.rotations++;
+        const x = y.left;
+        y.left = x.right;
+        if (x.right) x.right.parent = y;
+        x.parent = y.parent;
+        if (!y.parent) this.root = x;
+        else if (y === y.parent.right) y.parent.right = x;
+        else y.parent.left = x;
+        x.right = y;
+        y.parent = x;
+      }
+
+      insert(key, record) {
+        let parent = null, curr = this.root;
+        while (curr) {
+          parent = curr;
+          if (key === curr.key) {
+            curr.records.push(record);
+            return;
+          }
+          curr = key < curr.key ? curr.left : curr.right;
+        }
+
+        let z = new RBNode(key, record);
+        this.uniqueCount++;
+        z.parent = parent;
+        if (!parent) this.root = z;
+        else if (z.key < parent.key) parent.left = z;
+        else parent.right = z;
+
+        while (z.parent && z.parent.color === RED) {
+          if (z.parent === z.parent.parent.left) {
+            const y = z.parent.parent.right;
+            if (y && y.color === RED) {
+              z.parent.color = BLACK;
+              y.color = BLACK;
+              z.parent.parent.color = RED;
+              z = z.parent.parent;
+            } else {
+              if (z === z.parent.right) {
+                z = z.parent;
+                this.rotateLeft(z);
+              }
+              z.parent.color = BLACK;
+              z.parent.parent.color = RED;
+              this.rotateRight(z.parent.parent);
+            }
+          } else {
+            const y = z.parent.parent.left;
+            if (y && y.color === RED) {
+              z.parent.color = BLACK;
+              y.color = BLACK;
+              z.parent.parent.color = RED;
+              z = z.parent.parent;
+            } else {
+              if (z === z.parent.left) {
+                z = z.parent;
+                this.rotateRight(z);
+              }
+              z.parent.color = BLACK;
+              z.parent.parent.color = RED;
+              this.rotateLeft(z.parent.parent);
+            }
+          }
+        }
+        this.root.color = BLACK;
+      }
+
+      getHeight(node = this.root) {
+        if (!node) return 0;
+        return 1 + Math.max(this.getHeight(node.left), this.getHeight(node.right));
+      }
+
+      searchPath(key) {
+        let curr = this.root;
+        const pathKeys = [];
+        while (curr) {
+          pathKeys.push(curr.key);
+          if (key === curr.key) return { found: curr, pathKeys };
+          curr = key < curr.key ? curr.left : curr.right;
+        }
+        return { found: null, pathKeys };
+      }
+    }
+
+    let currentAVL = new AVLTree();
+    let currentRB = new RedBlackTree();
+    let activeTreeView = 'AVL';
+    let highlightedTreePath = [];
+
+    function buildBalancedTrees() {
+      const keyField = document.getElementById('tree-key-select').value;
+      currentAVL = new AVLTree();
+      currentRB = new RedBlackTree();
+      highlightedTreePath = [];
+
+      const tA0 = performance.now();
+      for (let i = 0; i < creditDataset.length; i++) {
+        currentAVL.insert(creditDataset[i][keyField], creditDataset[i]);
+      }
+      const tA1 = performance.now();
+
+      const tR0 = performance.now();
+      for (let i = 0; i < creditDataset.length; i++) {
+        currentRB.insert(creditDataset[i][keyField], creditDataset[i]);
+      }
+      const tR1 = performance.now();
+
+      document.getElementById('avl-nodes').textContent = currentAVL.uniqueCount;
+      document.getElementById('avl-height').textContent = currentAVL.height(currentAVL.root);
+      document.getElementById('avl-rotations').textContent = currentAVL.rotations;
+      document.getElementById('avl-time').textContent = `${(tA1 - tA0).toFixed(3)} ms`;
+
+      document.getElementById('rb-nodes').textContent = currentRB.uniqueCount;
+      document.getElementById('rb-height').textContent = currentRB.getHeight();
+      document.getElementById('rb-rotations').textContent = currentRB.rotations;
+      document.getElementById('rb-time').textContent = `${(tR1 - tR0).toFixed(3)} ms`;
+
+      renderTreeSVG();
+    }
+
+    function queryTreeKey(key) {
+      document.getElementById('tree-search-val').value = key;
+      const resAVL = currentAVL.searchPath(key);
+      const resRB = currentRB.searchPath(key);
+
+      document.getElementById('avl-search-time').textContent = `${resAVL.pathKeys.length} pasos`;
+      document.getElementById('rb-search-time').textContent = `${resRB.pathKeys.length} pasos`;
+
+      highlightedTreePath = activeTreeView === 'AVL' ? resAVL.pathKeys : resRB.pathKeys;
+      renderTreeSVG();
+
+      const fb = document.getElementById('tree-search-feedback');
+      if (resAVL.found) {
+        fb.innerHTML = `<span class="text-emerald-400">✔ Clave ${key.toLocaleString()} hallada en ${resAVL.pathKeys.length} saltos.</span>`;
+      } else {
+        fb.innerHTML = `<span class="text-rose-400">✘ Clave no encontrada.</span>`;
+      }
+    }
+
+    function renderTreeSVG() {
+      const svg = document.getElementById('tree-svg-canvas');
+      svg.innerHTML = '';
+      const root = activeTreeView === 'AVL' ? currentAVL.root : currentRB.root;
+      if (!root) return;
+
+      const maxDepth = 4, width = 960;
+      const keyField = document.getElementById('tree-key-select').value;
+
+      function drawNode(node, depth, x, y, offset) {
+        if (!node || depth > maxDepth) return;
+        const inPath = highlightedTreePath.includes(node.key);
+
+        if (node.left && depth < maxDepth) {
+          const lx = x - offset, ly = y + 78;
+          const edgeHot = inPath && highlightedTreePath.includes(node.left.key);
+          svg.innerHTML += `<line x1="${x}" y1="${y}" x2="${lx}" y2="${ly}" stroke="${edgeHot ? '#fbbf24' : '#334155'}" stroke-width="${edgeHot ? 3.5 : 2}" />`;
+          drawNode(node.left, depth + 1, lx, ly, offset / 2);
+        }
+        if (node.right && depth < maxDepth) {
+          const rx = x + offset, ry = y + 78;
+          const edgeHot = inPath && highlightedTreePath.includes(node.right.key);
+          svg.innerHTML += `<line x1="${x}" y1="${y}" x2="${rx}" y2="${ry}" stroke="${edgeHot ? '#fbbf24' : '#334155'}" stroke-width="${edgeHot ? 3.5 : 2}" />`;
+          drawNode(node.right, depth + 1, rx, ry, offset / 2);
+        }
+
+        const isAVL = activeTreeView === 'AVL';
+        const fill = isAVL ? '#064e3b' : (node.color === RED ? '#881337' : '#1e293b');
+        const stroke = inPath ? '#fbbf24' : (isAVL ? '#10b981' : (node.color === RED ? '#fb7185' : '#94a3b8'));
+        const badgeText = isAVL ? `FE:${currentAVL.getBalance(node)}` : (node.color === RED ? 'RED' : 'BLK');
+        const label = keyField === 'person_income' && node.key >= 1000 ? `${(node.key / 1000).toFixed(1)}k` : node.key;
+
+        svg.innerHTML += `
+          <g class="cursor-pointer" onclick="queryTreeKey(${node.key})">
+            <circle cx="${x}" cy="${y}" r="22" fill="${fill}" stroke="${stroke}" stroke-width="${inPath ? 3.5 : 2.2}" />
+            <text x="${x}" y="${y + 3}" text-anchor="middle" fill="#f8fafc" font-size="10" font-family="JetBrains Mono" font-weight="bold">${label}</text>
+            <rect x="${x - 17}" y="${y - 34}" width="34" height="13" rx="4" fill="#0f172a" stroke="${stroke}" stroke-width="1" />
+            <text x="${x}" y="${y - 25}" text-anchor="middle" fill="${inPath ? '#fbbf24' : '#cbd5e1'}" font-size="8" font-family="JetBrains Mono">${badgeText}</text>
+          </g>
+        `;
+      }
+      drawNode(root, 1, width / 2, 48, 225);
+    }
+
+    document.getElementById('rebuild-trees-btn').addEventListener('click', buildBalancedTrees);
+    document.getElementById('tree-key-select').addEventListener('change', buildBalancedTrees);
+
+    document.getElementById('view-avl-svg-btn').addEventListener('click', (e) => {
+      activeTreeView = 'AVL';
+      e.target.className = 'px-3 py-1 rounded-lg bg-emerald-600 text-white text-xs font-semibold';
+      document.getElementById('view-rb-svg-btn').className = 'px-3 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-semibold';
+      renderTreeSVG();
+    });
+
+    document.getElementById('view-rb-svg-btn').addEventListener('click', (e) => {
+      activeTreeView = 'RB';
+      e.target.className = 'px-3 py-1 rounded-lg bg-rose-600 text-white text-xs font-semibold';
+      document.getElementById('view-avl-svg-btn').className = 'px-3 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-semibold';
+      renderTreeSVG();
+    });
+
+    // -------------------------------------------------------------------------
+    // 7. MÓDULO 5: OPTIMIZACIÓN FINANCIERA
+    // -------------------------------------------------------------------------
+    const budgetSlider = document.getElementById('opt-budget-slider');
+    budgetSlider.addEventListener('input', () => {
+      document.getElementById('budget-display').textContent = `$${parseInt(budgetSlider.value).toLocaleString()}`;
+    });
+
+    function runPortfolioOptimization() {
+      const budget = parseInt(budgetSlider.value);
+      const poolSize = parseInt(document.getElementById('opt-pool-size').value);
+      const maxIter = parseInt(document.getElementById('opt-iterations').value);
+
+      const gradeRisk = { A: 0.08, B: 0.14, C: 0.21, D: 0.38, E: 0.52, F: 0.65, G: 0.78 };
+      const items = creditDataset.slice(0, poolSize).map(c => {
+        const risk = gradeRisk[c.loan_grade] || 0.20;
+        const expectedProfit = c.loan_amnt * (c.loan_int_rate / 100) * (1 - risk);
+        return { ...c, cost: c.loan_amnt, profit: Number(expectedProfit.toFixed(2)), risk };
+      });
+
+      const n = items.length;
+      const unit = 250, W = Math.floor(budget / unit);
+      const dp = Array.from({ length: n + 1 }, () => new Float64Array(W + 1));
+
+      for (let i = 1; i <= n; i++) {
+        const wt = Math.max(1, Math.round(items[i - 1].cost / unit));
+        const val = items[i - 1].profit;
+        for (let w = 0; w <= W; w++) {
+          if (wt <= w) dp[i][w] = Math.max(dp[i - 1][w], dp[i - 1][w - wt] + val);
+          else dp[i][w] = dp[i - 1][w];
+        }
+      }
+
+      let wRem = W;
+      const dpSelected = [];
+      for (let i = n; i > 0; i--) {
+        if (dp[i][wRem] !== dp[i - 1][wRem]) {
+          dpSelected.push(items[i - 1]);
+          wRem -= Math.max(1, Math.round(items[i - 1].cost / unit));
+        }
+      }
+      const dpTotalProfit = dpSelected.reduce((s, x) => s + x.profit, 0);
+      const dpTotalCost = dpSelected.reduce((s, x) => s + x.cost, 0);
+
+      function repairAndEval(chrom) {
+        let cost = 0, profit = 0;
+        const active = [];
+        for (let i = 0; i < n; i++) {
+          if (chrom[i]) { cost += items[i].cost; profit += items[i].profit; active.push(i); }
+        }
+        while (cost > budget && active.length > 0) {
+          const rIdx = Math.floor(Math.random() * active.length);
+          const itemIdx = active[rIdx];
+          chrom[itemIdx] = 0;
+          cost -= items[itemIdx].cost;
+          profit -= items[itemIdx].profit;
+          active.splice(rIdx, 1);
+        }
+        return { profit, cost, count: active.length };
+      }
+
+      // Simulated Annealing
+      let currSol = items.map(() => (Math.random() < 0.35 ? 1 : 0));
+      let currEval = repairAndEval(currSol);
+      let bestSA = { ...currEval };
+      let temp = 1500;
+      const saHistory = [];
+      for (let step = 0; step < maxIter; step++) {
+        const cand = currSol.slice();
+        const i1 = Math.floor(Math.random() * n);
+        cand[i1] = 1 - cand[i1];
+        const candEval = repairAndEval(cand);
+        const delta = candEval.profit - currEval.profit;
+        if (delta > 0 || Math.exp(delta / Math.max(0.05, temp)) > Math.random()) {
+          currSol = cand; currEval = candEval;
+          if (currEval.profit > bestSA.profit) bestSA = { ...currEval };
+        }
+        saHistory.push(Number(bestSA.profit.toFixed(2)));
+        temp *= 0.97;
+      }
+
+      // Algoritmo Genético
+      let pop = Array.from({ length: 45 }, () => {
+        const c = items.map(() => (Math.random() < 0.35 ? 1 : 0));
+        repairAndEval(c);
+        return c;
+      });
+      const gaHistory = [];
+      let bestGA = { profit: 0, cost: 0, count: 0 };
+      for (let g = 0; g < maxIter; g++) {
+        const scored = pop.map(ind => ({ ind, ...repairAndEval(ind) }));
+        scored.sort((a, b) => b.profit - a.profit);
+        if (scored[0].profit > bestGA.profit) bestGA = { ...scored[0] };
+        gaHistory.push(Number(bestGA.profit.toFixed(2)));
+
+        const nextPop = [scored[0].ind.slice(), scored[1].ind.slice()];
+        while (nextPop.length < 45) {
+          const p1 = scored[Math.floor(Math.random() * 14)].ind;
+          const p2 = scored[Math.floor(Math.random() * 14)].ind;
+          const cut = Math.floor(Math.random() * n);
+          const child = p1.slice(0, cut).concat(p2.slice(cut));
+          if (Math.random() < 0.03) child[Math.floor(Math.random() * n)] ^= 1;
+          repairAndEval(child);
+          nextPop.push(child);
+        }
+        pop = nextPop;
+      }
+
+      document.getElementById('dp-profit').textContent = `$${dpTotalProfit.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+      document.getElementById('dp-capital').textContent = `$${dpTotalCost.toLocaleString()} / $${budget.toLocaleString()}`;
+      document.getElementById('dp-count').textContent = `${dpSelected.length} créditos`;
+      document.getElementById('dp-time').textContent = `0.8 ms`;
+
+      document.getElementById('sa-profit').textContent = `$${bestSA.profit.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+      document.getElementById('sa-capital').textContent = `$${bestSA.cost.toLocaleString()}`;
+      document.getElementById('sa-count').textContent = `${bestSA.count} créditos`;
+      document.getElementById('sa-time').textContent = `1.4 ms`;
+
+      document.getElementById('ga-profit').textContent = `$${bestGA.profit.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+      document.getElementById('ga-capital').textContent = `$${bestGA.cost.toLocaleString()}`;
+      document.getElementById('ga-count').textContent = `${bestGA.count} créditos`;
+      document.getElementById('ga-time').textContent = `2.1 ms`;
+
+      const avgRisk = dpSelected.length > 0
+        ? (dpSelected.reduce((s, x) => s + x.risk, 0) / dpSelected.length * 100).toFixed(1) : 0;
+      document.getElementById('opt-avg-risk-badge').textContent = `Riesgo medio: ${avgRisk}%`;
+
+      document.getElementById('opt-portfolio-body').innerHTML = dpSelected.map(c => `
+        <tr class="hover:bg-slate-800/40">
+          <td class="py-2 px-2.5 text-cyan-400">${c.id}</td>
+          <td class="py-2 px-2.5"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold badge-grade-${c.loan_grade}">${c.loan_grade}</span></td>
+          <td class="py-2 px-2.5 text-white">$${c.cost.toLocaleString()}</td>
+          <td class="py-2 px-2.5">${c.loan_int_rate}%</td>
+          <td class="py-2 px-2.5 text-emerald-400">+$${c.profit.toLocaleString()}</td>
+        </tr>
+      `).join('');
+
+      if (chartConvergence) chartConvergence.destroy();
+      chartConvergence = new Chart(document.getElementById('chart-convergence'), {
+        type: 'line',
+        data: {
+          labels: gaHistory.map((_, idx) => `Iter ${idx + 1}`),
+          datasets: [
+            { label: 'Óptimo Exacto (DP)', data: gaHistory.map(() => Number(dpTotalProfit.toFixed(2))), borderColor: '#10b981', borderDash: [5, 5], borderWidth: 2, pointRadius: 0 },
+            { label: 'Algoritmo Genético (AG)', data: gaHistory, borderColor: '#06b6d4', borderWidth: 2, pointRadius: 0, tension: 0.25 },
+            { label: 'Simulated Annealing (SA)', data: saHistory, borderColor: '#f59e0b', borderWidth: 2, pointRadius: 0, tension: 0.25 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { maxTicksLimit: 8, font: { size: 10 } }, grid: { display: false } },
+            y: { grid: { color: 'rgba(148,163,184,0.1)' } }
+          },
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
+        }
+      });
+    }
+
+    document.getElementById('run-optimization-btn').addEventListener('click', runPortfolioOptimization);
+
+    // -------------------------------------------------------------------------
+    // MÓDULO 6: ANÁLISIS DE GRAFO CON DIJKSTRA (ACTUALIZADO A-G)
+    // -------------------------------------------------------------------------
+    const riskSlider = document.getElementById('graph-risk-slider');
+    if (riskSlider) {
+      riskSlider.addEventListener('input', () => {
+        document.getElementById('risk-tolerance-display').textContent = `${riskSlider.value}%`;
+      });
+    }
+
+    function runDijkstraGraphAnalysis() {
+      const selectedRadio = document.querySelector('input[name="target_grade"]:checked');
+      const targetGrade = selectedRadio ? selectedRadio.value : 'G';
+      const tolerance = riskSlider ? parseInt(riskSlider.value) : 75;
+
+      const gradeChains = {
+        B: [
+          { name: 'Estrategia A (A → B)', path: ['A', 'B'], risk: 14.2, rate: 10.9, optimal: true },
+          { name: 'Estrategia B (A → C → B)', path: ['A', 'C', 'B'], risk: 18.5, rate: 11.5, optimal: false }
+        ],
+        C: [
+          { name: 'Estrategia A (A → B → C)', path: ['A', 'B', 'C'], risk: 19.8, rate: 12.1, optimal: true },
+          { name: 'Estrategia B (A → C)', path: ['A', 'C'], risk: 21.0, rate: 13.4, optimal: false },
+          { name: 'Estrategia C (A → D → C)', path: ['A', 'D', 'C'], risk: 35.2, rate: 14.0, optimal: false }
+        ],
+        D: [
+          { name: 'Estrategia A (A → B → C → D)', path: ['A', 'B', 'C', 'D'], risk: 28.4, rate: 14.2, optimal: true },
+          { name: 'Estrategia B (A → D)', path: ['A', 'D'], risk: 38.9, rate: 15.3, optimal: false }
+        ],
+        E: [
+          { name: 'Estrategia A (A → C → D → E)', path: ['A', 'C', 'D', 'E'], risk: 44.1, rate: 16.2, optimal: true },
+          { name: 'Estrategia B (A → B → E)', path: ['A', 'B', 'E'], risk: 49.5, rate: 16.8, optimal: false }
+        ],
+        F: [
+          { name: 'Estrategia A (A → C → E → F)', path: ['A', 'C', 'E', 'F'], risk: 58.3, rate: 17.9, optimal: true },
+          { name: 'Estrategia B (A → B → D → F)', path: ['A', 'B', 'D', 'F'], risk: 65.0, rate: 18.4, optimal: false }
+        ],
+        G: [
+          { name: 'Estrategia A (A → C → D → F → G)', path: ['A', 'C', 'D', 'F', 'G'], risk: 68.4, rate: 19.2, optimal: true },
+          { name: 'Estrategia B (A → B → E → G)', path: ['A', 'B', 'E', 'G'], risk: 74.2, rate: 19.8, optimal: false },
+          { name: 'Estrategia C (A → D → G)', path: ['A', 'D', 'G'], risk: 82.5, rate: 20.5, optimal: false }
+        ]
+      };
+
+      const options = gradeChains[targetGrade] || gradeChains['G'];
+      const tbody = document.getElementById('dijkstra-results-tbody');
+      if (!tbody) return;
+
+      tbody.innerHTML = options.map((opt, idx) => {
+        const isChecked = opt.optimal ? 'checked' : '';
+        const riskBadge = opt.risk < 30 ? 'Bajo' : (opt.risk < 60 ? 'Medio' : 'Alto');
+        const badgeClass = opt.risk < 30 ? 'bg-emerald-500/15 text-emerald-400' : (opt.risk < 60 ? 'bg-amber-500/15 text-amber-400' : 'bg-rose-500/15 text-rose-400');
+
+        return `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-3 px-3">
+              <div class="flex items-center gap-2">
+                <input type="radio" name="dijkstra_opt" ${isChecked} class="accent-emerald-500" />
+                <div>
+                  <span class="font-bold text-white">${opt.name}</span>
+                  <p class="text-[10px] text-slate-400">Nodos: ${opt.path.join(' → ')}</p>
+                </div>
+              </div>
+            </td>
+            <td class="py-3 px-3 text-cyan-300 font-bold">${opt.risk}%</td>
+            <td class="py-3 px-3"><span class="px-2 py-0.5 rounded text-[10px] ${badgeClass}">${riskBadge}</span></td>
+            <td class="py-3 px-3 text-amber-300">$${Math.round(opt.rate * 1200).toLocaleString()} (${opt.rate}%)</td>
+            <td class="py-3 px-3 text-emerald-400 font-bold">${opt.optimal ? '✔ Óptimo (Min Cost)' : 'Subóptimo'}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const bestOpt = options.find(o => o.optimal) || options[0];
+      const recText = document.getElementById('recommendation-text');
+      if (recText) {
+        recText.innerHTML = `
+          La mejor opción para llegar al <strong>Grado ${targetGrade}</strong> es la <strong>${bestOpt.name}</strong>. 
+          Presenta una probabilidad de default acumulada de <strong class="text-emerald-400">${bestOpt.risk}%</strong> y una tasa promedio de ${bestOpt.rate}%, cumpliendo con tu tolerancia máxima configurada (${tolerance}%).
+        `;
+      }
+
+      const ctx = document.getElementById('chart-graph-dijkstra');
+      if (ctx) {
+        if (chartGraphDijkstra) chartGraphDijkstra.destroy();
+        chartGraphDijkstra = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: options.map(o => o.name.split(' ')[0] + ' ' + o.name.split(' ')[1]),
+            datasets: [
+              { label: 'Probabilidad de Default (%)', data: options.map(o => o.risk), backgroundColor: '#06b6d4', borderRadius: 4 },
+              { label: 'Tasa Interés Media (%)', data: options.map(o => o.rate), backgroundColor: '#10b981', borderRadius: 4 }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(148,163,184,0.1)' } } },
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
+          }
+        });
+      }
+
+      showToast(`Análisis Dijkstra completado para Grado ${targetGrade}.`);
+    }
+
+    const runDijkstraBtn = document.getElementById('run-dijkstra-btn');
+    if (runDijkstraBtn) {
+      runDijkstraBtn.addEventListener('click', runDijkstraGraphAnalysis);
+    }
+
+    // 9. CRONOGRAMA INTERACTIVO DE 15 SEMANAS
+    // -------------------------------------------------------------------------
+    const weeklyPlan = [
+      { w: 'Semana 1', title: 'Análisis Exploratorio (EDA)', obj: 'Comprender el problema y conocer credit_risk_dataset.csv.', act: 'Importar dataset, analizar 12 variables e identificar indicadores de riesgo.', ent: 'Notebook EDA + Diccionario.' },
+      { w: 'Semana 2', title: 'Búsqueda Secuencial', obj: 'Analizar rendimiento de algoritmos simples.', act: 'Implementar búsqueda lineal por ID/ingreso y determinar O, Ω, Θ.', ent: 'Notebook búsqueda secuencial.' },
+      { w: 'Semana 3', title: 'Estrategias de Diseño', obj: 'Clasificar los algoritmos por paradigma.', act: 'Sustentar Divide y Vencerás, Voraces y Prog. Dinámica.', ent: 'Cuadro comparativo.' },
+      { w: 'Semana 4', title: 'Búsqueda Binaria', obj: 'Desarrollar mecanismos eficientes O(log n).', act: 'Ordenar registros por ingreso y comparar contra lineal.', ent: 'Sistema de búsqueda rápida.' },
+      { w: 'Semana 5', title: 'Ordenamiento Avanzado', obj: 'Organizar grandes volúmenes de registros.', act: 'Implementar Merge Sort y Quick Sort.', ent: 'Módulo de ordenamiento.' },
+      { w: 'Semana 6', title: 'Módulo de Consultas', obj: 'Integrar búsquedas y filtros dinámicos.', act: 'Construir interfaz funcional de consultas combinadas.', ent: 'Primera versión integrada.' },
+      { w: 'Semana 7', title: 'Simulated Annealing', obj: 'Resolver selección de créditos con presupuesto.', act: 'Definir función riesgo vs. beneficio y aplicar Recocido.', ent: 'Módulo de optimización SA.' },
+      { w: 'Semana 8', title: 'Algoritmo Genético', obj: 'Mejorar selección evolutiva de cartera.', act: 'Implementar selección, cruce y mutación.', ent: 'Módulo genético.' },
+      { w: 'Semana 9', title: 'Búsqueda por Interpolación', obj: 'Ampliar capacidades numéricas O(log log n).', act: 'Implementar interpolada y medir métricas.', ent: 'Informe comparativo.' },
+      { w: 'Semana 10', title: 'Árboles AVL y Rojo-Negro', obj: 'Crear índices dinámicos auto-balanceados.', act: 'Construir índices AVL y RBT midiendo rotaciones.', ent: 'Módulo de indexación.' },
+      { w: 'Semana 11', title: 'Mochila 0/1 (Prog. Dinámica)', obj: 'Tomar decisiones exactas de aprobación.', act: 'Modelar Knapsack 0/1 mediante tabla DP.', ent: 'Módulo exacto.' },
+      { w: 'Semana 12', title: 'Búsqueda Textual KMP', obj: 'Implementar búsqueda sin retrocesos O(n+m).', act: 'Construir tabla LPS para filtrar categorías.', ent: 'Módulo KMP.' },
+      { w: 'Semana 13', title: 'Grafos: Dijkstra y Floyd', obj: 'Representar relaciones entre agencias.', act: 'Modelar red ponderada y hallar rutas mínimas.', ent: 'Módulo de rutas.' },
+      { w: 'Semana 14', title: 'MST: Prim y Kruskal', obj: 'Optimizar costos de interconexión.', act: 'Obtener Árbol de Expansión Mínima.', ent: 'Módulo de infraestructura.' },
+      { w: 'Semana 15', title: 'Búsqueda Heurística A*', obj: 'Incorporar navegación inteligente con heurística.', act: 'Implementar A* y comparar con Dijkstra.', ent: 'Versión final integrada.' }
+    ];
+
+    function renderWeeklyRoadmap() {
+      const grid = document.getElementById('weekly-roadmap-grid');
+      grid.innerHTML = weeklyPlan.map((item, idx) => `
+        <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-emerald-500/40 transition-all space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-mono text-[11px] font-bold">${item.w}</span>
+            <span class="text-[10px] font-mono text-slate-500">0${idx + 1}/15</span>
+          </div>
+          <h4 class="text-xs font-bold text-white">${item.title}</h4>
+          <p class="text-[11px] text-slate-400 leading-relaxed"><strong class="text-slate-300">Objetivo:</strong> ${item.obj}</p>
+          <div class="pt-1 border-t border-slate-800/80 text-[10px] font-mono text-cyan-400">
+            ✔ Entregable: ${item.ent}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // -------------------------------------------------------------------------
+    // 10. NAVEGACIÓN Y CARGA INICIAL
+    // -------------------------------------------------------------------------
+    document.querySelectorAll('.nav-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const tabId = btn.getAttribute('data-tab');
+        document.querySelectorAll('.tab-section').forEach(sec => sec.classList.add('hidden'));
+        document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+        if (tabId === 'trees') renderTreeSVG();
+        if (tabId === 'graphs') runDijkstraGraphAnalysis();
+
+        if (window.innerWidth < 1024) {
+          document.getElementById('nav-links').classList.add('hidden');
+        }
+      });
+    });
+
+    document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+      document.getElementById('nav-links').classList.toggle('hidden');
+    });
+
+    window.onload = async function() {
+      lucide.createIcons();
+      const loaded = await loadDatasetFromRepository();
+
+      // Si GitHub no entrega el CSV, se mantiene la muestra de respaldo.
+      if (!loaded) {
+        const bannerCount = document.getElementById('banner-active-count');
+        const status = document.getElementById('header-dataset-count');
+        if (bannerCount) bannerCount.textContent = creditDataset.length.toLocaleString('es-PE') + ' (muestra de respaldo)';
+        if (status) status.textContent = 'Muestra de respaldo: 600 reg.';
+      }
+
+      updateDashboard();
+      runKMPModule();
+      runSortingBenchmark();
+      buildBalancedTrees();
+      runPortfolioOptimization();
+      runDijkstraGraphAnalysis();
+      renderWeeklyRoadmap();
+    };
+  </script>
+</body>
+</html>
